@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Budget Tracker</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#0f172a;min-height:100vh;padding:20px}
+  .container{max-width:600px;margin:0 auto;background:linear-gradient(135deg,#1e293b 0%,#334155 100%);border-radius:24px;padding:30px;box-shadow:0 25px 50px rgba(0,0,0,.5)}
+  h1{color:#f1f5f9;margin-bottom:20px;font-size:32px;text-align:center;font-weight:700}
+  .payday-info{text-align:center;padding:12px 20px;background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.3);border-radius:12px;margin-bottom:25px;color:#86efac;font-weight:600;font-size:14px}
+
+  .bubble-container{display:flex;justify-content:center;align-items:center;margin:30px 0}
+  .bubble{width:200px;height:200px;border-radius:50%;border:6px solid rgba(148,163,184,.2);position:relative;overflow:hidden;background:rgba(15,23,42,.6);box-shadow:inset 0 10px 40px rgba(0,0,0,.3)}
+  .bubble-fill{position:absolute;bottom:0;left:0;right:0;background:linear-gradient(180deg,#34d399 0%,#10b981 100%);transition:height .6s cubic-bezier(.4,0,.2,1)}
+  .bubble-fill.negative{background:linear-gradient(180deg,#f87171 0%,#ef4444 100%)}
+  .bubble-amount{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:28px;font-weight:700;color:#f1f5f9;z-index:10;text-shadow:0 2px 8px rgba(0,0,0,.5)}
+  .bubble-label{text-align:center;margin-top:15px;font-size:16px;color:#cbd5e1;font-weight:600}
+
+  .goals-header{display:flex;justify-content:space-between;align-items:center;margin:30px 0 12px}
+  .goals-header h2{color:#f1f5f9;font-size:20px;font-weight:700}
+  .slider-controls{display:flex;gap:8px}
+  .icon-btn{border:1px solid rgba(148,163,184,.25);background:rgba(148,163,184,.12);color:#e2e8f0;border-radius:10px;padding:8px 10px;cursor:pointer}
+
+  /* Horizontal slider */
+  .slider{
+    display:flex;gap:14px;overflow-x:auto;scroll-snap-type:x mandatory;padding-bottom:8px;
+  }
+  .slider::-webkit-scrollbar{height:8px}
+  .slider::-webkit-scrollbar-thumb{background:rgba(148,163,184,.3);border-radius:8px}
+  .goal-card{scroll-snap-align:center;min-width:260px;max-width:260px}
+
+  .goal-bar{padding:16px;background:rgba(15,23,42,.4);border-radius:16px;border:1px solid rgba(148,163,184,.1);transition:transform .2s,box-shadow .2s}
+  .goal-bar:hover{transform:translateY(-2px);box-shadow:0 8px 16px rgba(0,0,0,.3)}
+  .goal-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+  .goal-name{font-weight:600;color:#f1f5f9;font-size:16px;display:flex;align-items:center;gap:8px}
+  .goal-emoji{font-size:22px}
+  .goal-amount{font-size:16px;font-weight:700;color:#60a5fa}
+  .goal-progress-bar{background:rgba(15,23,42,.8);height:36px;border-radius:18px;overflow:hidden;position:relative;border:1px solid rgba(148,163,184,.15)}
+  .goal-progress-fill{height:100%;background:linear-gradient(90deg,#3b82f6 0%,#60a5fa 100%);transition:width .6s cubic-bezier(.4,0,.2,1);display:flex;align-items:center;justify-content:flex-end;padding-right:12px;color:#fff;font-size:13px;font-weight:700;text-shadow:0 1px 2px rgba(0,0,0,.3)}
+  .goal-info{display:flex;justify-content:space-between;margin-top:8px;font-size:12px;color:#94a3b8}
+
+  .summary{display:grid;grid-template-columns:1fr 1fr;gap:15px;margin:22px 0 30px}
+  .summary-box{padding:20px;border-radius:16px;text-align:center;border:1px solid}
+  .income-box{background:rgba(34,197,94,.1);border-color:rgba(34,197,94,.3)}
+  .expense-box{background:rgba(239,68,68,.1);border-color:rgba(239,68,68,.3)}
+  .summary-box h3{font-size:13px;color:#94a3b8;margin-bottom:8px;font-weight:600;text-transform:uppercase;letter-spacing:.5px}
+  .summary-box .amount{font-size:26px;font-weight:700}
+  .income-box .amount{color:#22c55e}
+  .expense-box .amount{color:#ef4444}
+
+  .input-section{background:rgba(15,23,42,.4);padding:20px;border-radius:16px;margin-bottom:20px;border:1px solid rgba(148,163,184,.1)}
+  input,select,button{width:100%;padding:14px;margin-bottom:12px;border:1px solid rgba(148,163,184,.3);border-radius:12px;font-size:16px;background:rgba(15,23,42,.6);color:#f1f5f9}
+  input:focus,select:focus{outline:none;border-color:#3b82f6}
+  button{background:linear-gradient(135deg,#3b82f6 0%,#2563eb 100%);color:#fff;border:none;cursor:pointer;font-weight:700;transition:transform .2s}
+  button:hover{transform:translateY(-2px)} button:active{transform:translateY(0)}
+  .actions{display:flex;gap:10px;margin-bottom:12px}
+  .muted{background:rgba(148,163,184,.2)}
+
+  .transactions{margin-top:30px}
+  .transactions h2{color:#f1f5f9;margin-bottom:15px;font-weight:700}
+  .transaction{display:flex;justify-content:space-between;align-items:center;padding:16px;background:rgba(15,23,42,.4);border-radius:12px;margin-bottom:10px;border-left:4px solid;border:1px solid rgba(148,163,184,.1)}
+  .transaction.income{border-left-color:#22c55e}
+  .transaction.expense{border-left-color:#ef4444}
+  .transaction-info{flex:1}
+  .transaction-name{font-weight:600;color:#f1f5f9;margin-bottom:4px}
+  .transaction-category{font-size:12px;color:#94a3b8}
+  .transaction-amount{font-size:18px;font-weight:700}
+  .transaction.income .transaction-amount{color:#22c55e}
+  .transaction.expense .transaction-amount{color:#ef4444}
+  .delete-btn{background:rgba(239,68,68,.2);color:#ef4444;border:1px solid rgba(239,68,68,.3);padding:6px 12px;border-radius:8px;cursor:pointer;font-size:12px;margin-left:10px;font-weight:600;transition:all .2s}
+  .delete-btn:hover{background:rgba(239,68,68,.3)}
+
+  .modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:1000;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
+  .modal.active{display:flex}
+  .modal-content{background:linear-gradient(135deg,#1e293b 0%,#334155 100%);padding:30px;border-radius:20px;max-width:420px;width:90%;max-height:80vh;overflow-y:auto;box-shadow:0 25px 50px rgba(0,0,0,.5);border:1px solid rgba(148,163,184,.2)}
+  .modal-content h2{margin-bottom:20px;color:#f1f5f9;font-weight:700}
+  .modal-content p{color:#cbd5e1}
+  .goal-input{margin-bottom:18px}
+  .goal-input label{display:block;margin-bottom:8px;color:#cbd5e1;font-weight:600;font-size:14px}
+  .goal-input input{width:100%;padding:12px;border:1px solid rgba(148,163,184,.3);border-radius:10px;font-size:16px;background:rgba(15,23,42,.6);color:#f1f5f9}
+  .goal-input input:focus{outline:none;border-color:#3b82f6}
+  .goal-remaining{font-size:12px;color:#94a3b8;margin-top:5px}
+  .modal-buttons{display:flex;gap:12px;margin-top:24px}
+  .modal-buttons button{flex:1;padding:14px;border:none;border-radius:12px;font-size:16px;font-weight:700;cursor:pointer;transition:transform .2s}
+  .btn-confirm{background:linear-gradient(135deg,#3b82f6 0%,#2563eb 100%);color:#fff}
+  .btn-cancel{background:rgba(148,163,184,.2);color:#cbd5e1}
+</style>
+</head>
+<body>
+  <div class="container">
+    <h1>💰 Budget Tracker</h1>
+    <div class="payday-info" id="paydayInfo">Loading…</div>
+
+    <div class="bubble-container">
+      <div>
+        <div class="bubble">
+          <div class="bubble-fill" id="mainBubbleFill" style="height:0%"></div>
+          <div class="bubble-amount" id="mainBubbleAmount">$0</div>
+        </div>
+        <div class="bubble-label">Main Balance</div>
+      </div>
+    </div>
+
+    <div class="goals-header">
+      <h2>Savings Goals</h2>
+      <div class="slider-controls">
+        <button class="icon-btn" id="prevGoals" title="Prev">⟨</button>
+        <button class="icon-btn" id="nextGoals" title="Next">⟩</button>
+      </div>
+    </div>
+
+    <!-- Slider -->
+    <div class="slider" id="goalsSlider">
+      <div class="goal-card">
+        <div class="goal-bar" data-key="smokes" data-cap="80" data-label="Smokes">
+          <div class="goal-header">
+            <span class="goal-name"><span class="goal-emoji">🚬</span> Smokes</span>
+            <span class="goal-amount" id="smokesAmount">$0 / $80</span>
+          </div>
+          <div class="goal-progress-bar"><div class="goal-progress-fill" id="smokesFill" style="width:0%">0%</div></div>
+          <div class="goal-info"><span>Monthly reset</span><span id="smokesReset">Resets in X days</span></div>
+        </div>
+      </div>
+
+      <div class="goal-card">
+        <div class="goal-bar" data-key="food" data-cap="20" data-label="Food">
+          <div class="goal-header">
+            <span class="goal-name"><span class="goal-emoji">🍔</span> Food</span>
+            <span class="goal-amount" id="foodAmount">$0 / $20</span>
+          </div>
+          <div class="goal-progress-bar"><div class="goal-progress-fill" id="foodFill" style="width:0%">0%</div></div>
+          <div class="goal-info"><span>Weekly reset (Sunday)</span><span id="foodReset">Resets in X days</span></div>
+        </div>
+      </div>
+
+      <div class="goal-card">
+        <div class="goal-bar" data-key="booze" data-cap="50" data-label="Booze">
+          <div class="goal-header">
+            <span class="goal-name"><span class="goal-emoji">🍺</span> Booze</span>
+            <span class="goal-amount" id="boozeAmount">$0 / $50</span>
+          </div>
+          <div class="goal-progress-bar"><div class="goal-progress-fill" id="boozeFill" style="width:0%">0%</div></div>
+          <div class="goal-info"><span>Weekly reset (Sunday)</span><span id="boozeReset">Resets in X days</span></div>
+        </div>
+      </div>
+
+      <div class="goal-card">
+        <div class="goal-bar" data-key="tims" data-cap="20" data-label="Tim's">
+          <div class="goal-header">
+            <span class="goal-name"><span class="goal-emoji">☕</span> Tim's</span>
+            <span class="goal-amount" id="timsAmount">$0 / $20</span>
+          </div>
+          <div class="goal-progress-bar"><div class="goal-progress-fill" id="timsFill" style="width:0%">0%</div></div>
+          <div class="goal-info"><span>Biweekly reset (Payday)</span><span id="timsReset">Resets in X days</span></div>
+        </div>
+      </div>
+
+      <div class="goal-card">
+        <div class="goal-bar" data-key="bus" data-cap="40" data-label="Bus Pass">
+          <div class="goal-header">
+            <span class="goal-name"><span class="goal-emoji">🚌</span> Bus Pass</span>
+            <span class="goal-amount" id="busAmount">$0 / $40</span>
+          </div>
+          <div class="goal-progress-bar"><div class="goal-progress-fill" id="busFill" style="width:0%">0%</div></div>
+          <div class="goal-info"><span>Biweekly reset (Payday)</span><span id="busReset">Resets in X days</span></div>
+        </div>
+      </div>
+
+      <div class="goal-card">
+        <div class="goal-bar" data-key="airpods" data-cap="329" data-label="AirPods Pro 3">
+          <div class="goal-header">
+            <span class="goal-name"><span class="goal-emoji">🎧</span> AirPods Pro 3</span>
+            <span class="goal-amount" id="airpodsAmount">$0 / $329</span>
+          </div>
+          <div class="goal-progress-bar"><div class="goal-progress-fill" id="airpodsFill" style="width:0%">0%</div></div>
+          <div class="goal-info"><span>Long term savings</span><span>&nbsp;</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="summary">
+      <div class="summary-box income-box">
+        <h3>Total Income</h3>
+        <div class="amount" id="income">$0.00</div>
+      </div>
+      <div class="summary-box expense-box">
+        <h3>Total Expenses</h3>
+        <div class="amount" id="expenses">$0.00</div>
+      </div>
+    </div>
+
+    <div class="input-section">
+      <input type="text" id="description" placeholder="Description (e.g., Groceries)">
+      <input type="number" id="amount" placeholder="Amount" step="0.01" inputmode="decimal">
+      <select id="category">
+        <option value="Food">🍔 Food</option>
+        <option value="Transport">🚗 Transport</option>
+        <option value="Entertainment">🎬 Entertainment</option>
+        <option value="Bills">📱 Bills</option>
+        <option value="Shopping">🛍️ Shopping</option>
+        <option value="Income">💵 Income</option>
+        <option value="Other">📦 Other</option>
+      </select>
+      <select id="type">
+        <option value="expense">Expense</option>
+        <option value="income">Income</option>
+      </select>
+
+      <div class="actions">
+        <button id="addBtn">Add Transaction</button>
+        <button class="muted" id="exportBtn" title="Download your data">Export</button>
+        <button class="muted" id="importBtn" title="Import data JSON">Import</button>
+        <input type="file" id="importFile" accept="application/json" style="display:none">
+      </div>
+    </div>
+
+    <div class="transactions">
+      <h2>Recent Transactions</h2>
+      <div id="transactionList"></div>
+    </div>
+  </div>
+
+  <!-- Income split modal -->
+  <div class="modal" id="goalModal" aria-hidden="true">
+    <div class="modal-content" role="dialog" aria-modal="true" aria-labelledby="splitTitle">
+      <h2 id="splitTitle">Split Your Income</h2>
+      <p style="margin-bottom:20px">Total income: $<span id="modalTotalAmount">0</span></p>
+
+      <div class="goal-input"><label>🚬 Smokes (Goal: $80)</label>
+        <input type="number" id="smokesInput" placeholder="0.00" step="0.01" inputmode="decimal">
+        <div class="goal-remaining">Remaining to goal: $<span id="smokesRemaining">80</span></div>
+      </div>
+
+      <div class="goal-input"><label>🍔 Food (Goal: $20)</label>
+        <input type="number" id="foodInput" placeholder="0.00" step="0.01" inputmode="decimal">
+        <div class="goal-remaining">Remaining to goal: $<span id="foodRemaining">20</span></div>
+      </div>
+
+      <div class="goal-input"><label>🍺 Booze (Goal: $50)</label>
+        <input type="number" id="boozeInput" placeholder="0.00" step="0.01" inputmode="decimal">
+        <div class="goal-remaining">Remaining to goal: $<span id="boozeRemaining">50</span></div>
+      </div>
+
+      <div class="goal-input"><label>☕ Tim's (Goal: $20)</label>
+        <input type="number" id="timsInput" placeholder="0.00" step="0.01" inputmode="decimal">
+        <div class="goal-remaining">Remaining to goal: $<span id="timsRemaining">20</span></div>
+      </div>
+
+      <div class="goal-input"><label>🚌 Bus Pass (Goal: $40)</label>
+        <input type="number" id="busInput" placeholder="0.00" step="0.01" inputmode="decimal">
+        <div class="goal-remaining">Remaining to goal: $<span id="busRemaining">40</span></div>
+      </div>
+
+      <div class="goal-input"><label>🎧 AirPods Pro 3 (Goal: $329)</label>
+        <input type="number" id="airpodsInput" placeholder="0.00" step="0.01" inputmode="decimal">
+        <div class="goal-remaining">Remaining to goal: $<span id="airpodsRemaining">329</span></div>
+      </div>
+
+      <div class="goal-input">
+        <label>Remaining (goes to Main Balance)</label>
+        <div style="font-size:24px;font-weight:bold;color:#60a5fa">$<span id="remainingAmount">0</span></div>
+      </div>
+
+      <div class="modal-buttons">
+        <button class="btn-cancel" id="cancelSplit">Cancel</button>
+        <button class="btn-confirm" id="confirmSplit">Confirm</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+  const $ = id => document.getElementById(id);
+  const fmt = n => (isNaN(n) ? '$0.00' : `$${n.toFixed(2)}`);
+  function escapeHtml(s){ return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+  let transactions = load('budgetTransactions', []);
+  let goals = load('budgetGoals', { smokes:0, food:0, booze:0, tims:0, bus:0, airpods:0 });
+  let pendingIncome = null;
+
+  let nextPayday = getNext('nextPayday', () => biweeklyFrom('2025-10-09'));
+  let nextSunday = getNext('nextSunday', nextSundayFromToday);
+  let nextMonthStart = getNext('nextMonthStart', firstOfNextMonth);
+
+  function load(key, fallback){ try{ const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; }catch{ return fallback; } }
+  function save(key, val){ localStorage.setItem(key, JSON.stringify(val)); }
+
+  function biweeklyFrom(isoStart){
+    const first = new Date(isoStart);
+    const today = new Date();
+    let d = new Date(first);
+    while (d <= today) d.setDate(d.getDate()+14);
+    d.setHours(0,0,0,0);
+    return d;
+  }
+  function nextSundayFromToday(){
+    const t = new Date();
+    const d = new Date(t);
+    d.setDate(t.getDate() + ((7 - t.getDay()) % 7 || 7));
+    d.setHours(0,0,0,0);
+    return d;
+  }
+  function firstOfNextMonth(){
+    const t = new Date();
+    const d = new Date(t.getFullYear(), t.getMonth()+1, 1);
+    d.setHours(0,0,0,0);
+    return d;
+  }
+  function getNext(key, compute){
+    const saved = localStorage.getItem(key);
+    if (saved){
+      const d = new Date(saved);
+      if (d > new Date()) return d;
+    }
+    const next = compute();
+    localStorage.setItem(key, next.toISOString());
+    return next;
+  }
+  function daysUntil(date){ return Math.max(0, Math.ceil((date - new Date())/86400000)); }
+
+  function rolloverPot(key, label){
+    const amt = goals[key] || 0;
+    if (amt > 0){
+      const tx = { id: Date.now() + Math.random(), date: new Date().toISOString(),
+        description: `Rollover: ${label} unused`, amount: amt, category: 'Rollover', type:'income' };
+      transactions.unshift(tx);
+      goals[key] = 0;
+    }
+  }
+
+  function applyResets(){
+    const now = new Date();
+    if (now >= nextPayday){
+      rolloverPot('tims',"Tim's");
+      rolloverPot('bus','Bus Pass');
+      save('budgetGoals', goals);
+      localStorage.setItem('budgetTransactions', JSON.stringify(transactions));
+      nextPayday = biweeklyFrom('2025-10-09');
+      localStorage.setItem('nextPayday', nextPayday.toISOString());
+    }
+    if (now >= nextSunday){
+      rolloverPot('food','Food');
+      rolloverPot('booze','Booze');
+      save('budgetGoals', goals);
+      localStorage.setItem('budgetTransactions', JSON.stringify(transactions));
+      nextSunday = nextSundayFromToday();
+      localStorage.setItem('nextSunday', nextSunday.toISOString());
+    }
+    if (now >= nextMonthStart){
+      rolloverPot('smokes','Smokes');
+      save('budgetGoals', goals);
+      localStorage.setItem('budgetTransactions', JSON.stringify(transactions));
+      nextMonthStart = firstOfNextMonth();
+      localStorage.setItem('nextMonthStart', nextMonthStart.toISOString());
+    }
+  }
+
+  function updateResetsUI(){
+    const paydayDays = daysUntil(nextPayday);
+    const sundayDays = daysUntil(nextSunday);
+    const monthDays = daysUntil(nextMonthStart);
+    const paydayStr = nextPayday.toLocaleDateString('en-CA', {month:'short', day:'numeric'});
+    $('paydayInfo').textContent = `Next payday: ${paydayStr} (${paydayDays} day${paydayDays!==1?'s':''})`;
+    $('timsReset').textContent = `${paydayDays} day${paydayDays!==1?'s':''}`;
+    $('busReset').textContent = `${paydayDays} day${paydayDays!==1?'s':''}`;
+    $('foodReset').textContent = `${sundayDays} day${sundayDays!==1?'s':''}`;
+    $('boozeReset').textContent = `${sundayDays} day${sundayDays!==1?'s':''}`;
+    $('smokesReset').textContent = `${monthDays} day${monthDays!==1?'s':''}`;
+  }
+
+  function totals(){
+    let inc = 0, exp = 0;
+    for (const t of transactions){
+      if (t.type==='income') inc += t.amount;
+      else exp += t.amount;
+    }
+    const pots = goals.smokes + goals.food + goals.booze + goals.tims + goals.bus + goals.airpods;
+    const main = inc - exp - pots;
+    return {inc, exp, main};
+  }
+
+  function updateBubble(main){
+    const bubble = $('mainBubbleFill');
+    const amt = $('mainBubbleAmount');
+    amt.textContent = fmt(main);
+    let pct = 0;
+    if (main > 0){
+      pct = Math.min(100, (main/1000)*100);
+      bubble.classList.remove('negative');
+    }else{
+      pct = Math.min(100, (Math.abs(main)/500)*100);
+      bubble.classList.add('negative');
+    }
+    bubble.style.height = `${pct}%`;
+  }
+
+  function updateGoalBar(key, cap){
+    const current = goals[key] || 0;
+    const pct = Math.max(0, Math.min(100, (current / cap) * 100));
+    $(`${key}Amount`).textContent = `${fmt(current)} / ${cap}`;
+    const fill = $(`${key}Fill`);
+    fill.style.width = `${pct}%`;
+    fill.textContent = `${Math.round(pct)}%`;
+  }
+
+  function renderTransactions(){
+    const list = $('transactionList');
+    list.innerHTML = '';
+    for (const t of transactions){
+      const row = document.createElement('div');
+      row.className = `transaction ${t.type}`;
+      row.innerHTML = `
+        <div class="transaction-info">
+          <div class="transaction-name">${escapeHtml(t.description)}</div>
+          <div class="transaction-category">${t.category} • ${new Date(t.date).toLocaleString()}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <div class="transaction-amount">${fmt(t.amount)}</div>
+          <button class="delete-btn" aria-label="Delete transaction">Delete</button>
+        </div>`;
+      row.querySelector('.delete-btn').onclick = () => {
+        transactions = transactions.filter(x => x.id !== t.id);
+        save('budgetTransactions', transactions);
+        updateUI();
+      };
+      list.appendChild(row);
+    }
+  }
+
+  function updateGoalsUI(){
+    updateGoalBar('smokes', 80);
+    updateGoalBar('food', 20);
+    updateGoalBar('booze', 50);
+    updateGoalBar('tims', 20);
+    updateGoalBar('bus', 40);
+    updateGoalBar('airpods', 329);
+  }
+
+  function updateUI(){
+    applyResets();
+    updateResetsUI();
+    updateGoalsUI();
+    renderTransactions();
+    const {inc, exp, main} = totals();
+    $('income').textContent = fmt(inc);
+    $('expenses').textContent = fmt(exp);
+    updateBubble(main);
+  }
+
+  const slider = $('goalsSlider');
+  $('prevGoals').onclick = ()=> slider.scrollBy({left:-280,behavior:'smooth'});
+  $('nextGoals').onclick = ()=> slider.scrollBy({left: 280,behavior:'smooth'});
+
+  function openModal(show){ $('goalModal').classList.toggle('active', !!show); $('goalModal').setAttribute('aria-hidden', show ? 'false' : 'true'); }
+  function getModalInputs(){
+    return {
+      smokes: parseFloat($('smokesInput').value) || 0,
+      food: parseFloat($('foodInput').value) || 0,
+      booze: parseFloat($('boozeInput').value) || 0,
+      tims: parseFloat($('timsInput').value) || 0,
+      bus: parseFloat($('busInput').value) || 0,
+      airpods: parseFloat($('airpodsInput').value) || 0
+    };
+  }
+  function updateRemaining(){
+    if (!pendingIncome) return;
+    const caps = { smokes:80, food:20, booze:50, tims:20, bus:40, airpods:329 };
+    const adds = getModalInputs();
+    for (const k of Object.keys(adds)){
+      const remaining = Math.max(0, caps[k] - (goals[k]||0) - adds[k]);
+      $(`${k}Remaining`).textContent = remaining.toFixed(2);
+    }
+    const totalAdds = Object.values(adds).reduce((a,b)=>a+b,0);
+    const rem = Math.max(0, (pendingIncome?.amount || 0) - totalAdds);
+    $('remainingAmount').textContent = rem.toFixed(2);
+  }
+  ['smokesInput','foodInput','boozeInput','timsInput','busInput','airpodsInput'].forEach(id => {
+    $(id).addEventListener('input', updateRemaining);
+  });
+
+  $('addBtn').onclick = () => {
+    const desc = $('description').value.trim();
+    const amt = parseFloat($('amount').value);
+    const cat = $('category').value;
+    const type = $('type').value;
+
+    if (!desc || isNaN(amt) || amt <= 0){
+      alert('Please enter a description and a positive amount.');
+      return;
+    }
+
+    if (type === 'income'){
+      pendingIncome = { description: desc, amount: amt, category: cat };
+      $('modalTotalAmount').textContent = amt.toFixed(2);
+      ['smokes','food','booze','tims','bus','airpods'].forEach(k => $(`${k}Input`).value = '');
+      updateRemaining();
+      openModal(true);
+    } else {
+      const {keyMatched, coveredByPot} = applyAutoAssign(desc, cat, amt);
+      const tx = { id: Date.now(), date: new Date().toISOString(),
+        description: keyMatched ? `${desc} (from ${keyMatched} pot ${coveredByPot>0 ? '−$'+coveredByPot.toFixed(2):''})` : desc,
+        amount: amt, category: cat, type:'expense' };
+      transactions.unshift(tx);
+      save('budgetTransactions', transactions);
+      save('budgetGoals', goals);
+      $('description').value = ''; $('amount').value = '';
+      updateUI();
+    }
+  };
+
+  const potMap = [
+    {key:'food',   match: (cat,desc)=> cat==='Food' || /\b(grocery|grocer|food|snack|restaurant|pizza|burger|subway|mcd|kfc|wendy|taco|breakfast|lunch|dinner)\b/i.test(desc)},
+    {key:'booze',  match: (cat,desc)=> /\b(beer|booze|liquor|alcohol|wine|bar|pub)\b/i.test(desc)},
+    {key:'tims',   match: (cat,desc)=> /\b(tim'?s|tims|tim hortons|coffee|latte|double\s?double)\b/i.test(desc)},
+    {key:'bus',    match: (cat,desc)=> cat==='Transport' || /\b(bus|pass|transit|ticket)\b/i.test(desc)},
+    {key:'smokes', match: (cat,desc)=> /\b(smoke|cig|cigarette|tobacco|rolling)\b/i.test(desc)},
+  ];
+
+  function applyAutoAssign(desc, cat, amount){
+    let keyMatched = null, coveredByPot = 0;
+    for (const m of potMap){
+      if (m.match(cat, desc)){
+        keyMatched = m.key;
+        const potAvail = goals[m.key] || 0;
+        coveredByPot = Math.min(potAvail, amount);
+        if (coveredByPot > 0){
+          goals[m.key] = potAvail - coveredByPot;
+        }
+        break;
+    }}
+    return {keyMatched, coveredByPot};
+  }
+
+  $('cancelSplit').onclick = () => { pendingIncome = null; openModal(false); };
+  $('confirmSplit').onclick = () => {
+    if (!pendingIncome) return;
+    const adds = getModalInputs();
+    for (const k of Object.keys(adds)){
+      goals[k] = (goals[k]||0) + adds[k];
+    }
+    save('budgetGoals', goals);
+
+    const totalAdds = Object.values(adds).reduce((a,b)=>a+b,0);
+    const incTx = { id: Date.now(), date: new Date().toISOString(),
+      description: pendingIncome.description, amount: pendingIncome.amount, category: pendingIncome.category, type:'income' };
+    transactions.unshift(incTx);
+
+    if (totalAdds > 0){
+      const noteTx = { id: Date.now()+1, date: new Date().toISOString(),
+        description: 'Allocated to pots', amount: totalAdds, category: 'Goals', type:'expense' };
+      transactions.unshift(noteTx);
+    }
+
+    save('budgetTransactions', transactions);
+    pendingIncome = null;
+    openModal(false);
+    $('description').value = ''; $('amount').value = '';
+    updateUI();
+  };
+
+  $('exportBtn').onclick = () => {
+    const data = {
+      transactions, goals,
+      nextPayday: nextPayday.toISOString(),
+      nextSunday: nextSunday.toISOString(),
+      nextMonthStart: nextMonthStart.toISOString()
+    };
+    const blob = new Blob([JSON.stringify(data,null,2)], {type:'application/json'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `budget-backup-${new Date().toISOString().slice(0,10)}.json`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  };
+  $('importBtn').onclick = ()=> $('importFile').click();
+  $('importFile').addEventListener('change', async (e)=>{
+    const file = e.target.files?.[0]; if (!file) return;
+    try{
+      const text = await file.text();
+      const data = JSON.parse(text);
+      if (Array.isArray(data.transactions) && data.goals){
+        transactions = data.transactions;
+        goals = data.goals;
+        if (data.nextPayday) nextPayday = new Date(data.nextPayday);
+        if (data.nextSunday) nextSunday = new Date(data.nextSunday);
+        if (data.nextMonthStart) nextMonthStart = new Date(data.nextMonthStart);
+        save('budgetTransactions', transactions);
+        save('budgetGoals', goals);
+        localStorage.setItem('nextPayday', nextPayday.toISOString());
+        localStorage.setItem('nextSunday', nextSunday.toISOString());
+        localStorage.setItem('nextMonthStart', nextMonthStart.toISOString());
+        updateUI();
+        alert('Import successful!');
+      } else { alert('Invalid backup file.'); }
+    }catch{ alert('Could not read file.'); }
+    e.target.value = '';
+  });
+
+  updateUI();
+</script>
+</body>
+</html>
