@@ -28,77 +28,72 @@
       width: 100%;
     }
     .value {
+      font-weight: bold;
       margin-left: 10px;
       color: #6cf;
-      font-weight: bold;
     }
-    .total {
+    #total {
       margin-top: 30px;
-      font-size: 18px;
       text-align: center;
-      font-weight: bold;
-      color: #0f0;
+      font-size: 1.5em;
+      color: lime;
     }
   </style>
 </head>
 <body>
   <h1>Budget Tracker</h1>
-
-  <div class="category">
-    <label>Food: <span class="value" id="foodValue">$0</span></label>
-    <input type="range" id="food" min="0" max="100" value="0">
-  </div>
-
-  <div class="category">
-    <label>Transport: <span class="value" id="transportValue">$0</span></label>
-    <input type="range" id="transport" min="0" max="100" value="0">
-  </div>
-
-  <div class="category">
-    <label>Entertainment: <span class="value" id="entertainmentValue">$0</span></label>
-    <input type="range" id="entertainment" min="0" max="100" value="0">
-  </div>
-
-  <div class="category">
-    <label>Savings: <span class="value" id="savingsValue">$0</span></label>
-    <input type="range" id="savings" min="0" max="100" value="0">
-  </div>
-
-  <div class="total">
-    Total: <span id="total">$0</span>
-  </div>
+  <div id="categories"></div>
+  <div id="total">Total: $0</div>
 
   <script>
-    const categories = ["food", "transport", "entertainment", "savings"];
+    // categories to track
+    const categories = ["Food", "Transport", "Entertainment", "Savings"];
+    const container = document.getElementById("categories");
+    const totalDisplay = document.getElementById("total");
 
-    // Load saved values
-    categories.forEach(cat => {
-      const saved = localStorage.getItem(cat);
-      if (saved !== null) {
-        document.getElementById(cat).value = saved;
-        document.getElementById(cat + "Value").innerText = "$" + saved;
-      }
-    });
-    updateTotal();
+    // Load saved data from localStorage
+    let savedBudget = JSON.parse(localStorage.getItem("budgetData")) || {};
 
-    // Event listeners for sliders
+    // Build sliders
     categories.forEach(cat => {
-      const slider = document.getElementById(cat);
-      slider.addEventListener("input", () => {
-        const value = slider.value;
-        document.getElementById(cat + "Value").innerText = "$" + value;
-        localStorage.setItem(cat, value);
+      const div = document.createElement("div");
+      div.className = "category";
+
+      const label = document.createElement("label");
+      label.innerText = cat + ": ";
+      
+      const span = document.createElement("span");
+      span.className = "value";
+      span.id = cat + "-value";
+      span.innerText = "$" + (savedBudget[cat] || 0);
+
+      label.appendChild(span);
+      div.appendChild(label);
+
+      const input = document.createElement("input");
+      input.type = "range";
+      input.min = 0;
+      input.max = 100;
+      input.value = savedBudget[cat] || 0;
+
+      input.addEventListener("input", () => {
+        span.innerText = "$" + input.value;
+        savedBudget[cat] = parseInt(input.value);
+        localStorage.setItem("budgetData", JSON.stringify(savedBudget));
         updateTotal();
       });
+
+      div.appendChild(input);
+      container.appendChild(div);
     });
 
     function updateTotal() {
-      let total = 0;
-      categories.forEach(cat => {
-        total += parseInt(localStorage.getItem(cat) || 0, 10);
-      });
-      document.getElementById("total").innerText = "$" + total;
+      const sum = Object.values(savedBudget).reduce((a, b) => a + b, 0);
+      totalDisplay.innerText = "Total: $" + sum;
     }
+
+    // Initial render
+    updateTotal();
   </script>
 </body>
 </html>
