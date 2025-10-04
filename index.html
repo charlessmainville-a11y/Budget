@@ -1,287 +1,285 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Budget Tracker</title>
-<style>
-  :root{
-    --bg:#0f1115; --panel:#141824; --ink:#e9eef5; --muted:#a9b3c7;
-    --accent:#61dafb; --ok:#30d158; --warn:#ffd60a; --bad:#ff453a;
-    --ring:#2b3248;
-  }
-  *{box-sizing:border-box}
-  body{
-    margin:0; padding:18px; background:var(--bg); color:var(--ink);
-    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Inter,system-ui,sans-serif;
-  }
-  h1{margin:8px 0 14px; text-align:center; font-size:34px}
-  .row{display:flex; gap:14px; flex-wrap:wrap}
-  .card{
-    background:var(--panel); border:1px solid var(--ring); border-radius:14px;
-    padding:14px; box-shadow:0 6px 18px rgba(0,0,0,.25);
-  }
-  .stack{display:flex; flex-direction:column; gap:10px}
-  .muted{color:var(--muted)}
-  .pill{display:inline-flex; align-items:center; gap:8px; background:#0e1220; border:1px solid var(--ring); padding:6px 10px; border-radius:999px; font-size:12px}
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Budget Tracker</title>
+  <style>
+    :root {
+      --bg: #111;
+      --panel: #1b1b1b;
+      --text: #f5f5f5;
+      --accent: #6cf;
+      --good: #28d07f;
+      --warn: #ffb020;
+      --bad: #ff5d5d;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      margin: 0;
+      padding: 22px;
+    }
+    h1 { text-align:center; margin: 0 0 14px; }
+    .row { max-width: 760px; margin: 0 auto; }
 
-  /* Bubbles */
-  .bubbles{display:grid; grid-template-columns:repeat(auto-fill,minmax(140px,1fr)); gap:14px}
-  .bubble{
-    --pct:0; --col:var(--ok);
-    display:grid; place-items:center; gap:8px; padding:12px 8px;
-    border-radius:14px; background:#0e1220; border:1px solid var(--ring);
-  }
-  .bubble-ring{
-    width:92px; height:92px; border-radius:50%;
-    background:
-      conic-gradient(var(--col) calc(var(--pct)*1%), #27304a 0);
-    display:grid; place-items:center;
-  }
-  .bubble-inner{
-    width:74px;height:74px;border-radius:50%; background:var(--panel);
-    display:grid; place-items:center; font-weight:700;
-  }
-  .bubble label{font-size:13px;color:var(--muted)}
-  .bubble .numbers{font-size:12px;color:var(--muted)}
+    /* Big top bubble shows REMAINING */
+    .total-bubble {
+      display:flex; align-items:center; justify-content:center;
+      width: 190px; height: 190px; border-radius: 50%;
+      margin: 12px auto 24px; font-size: 1.6rem; font-weight: 800;
+      background: #202020; color: var(--accent); border: 4px solid var(--accent);
+      text-align:center; line-height:1.2;
+    }
+    .bubble-sub { display:block; font-size:.85rem; font-weight:600; opacity:.9; }
 
-  /* Sliders */
-  .slider-row{display:grid; gap:6px}
-  .slider-row header{
-    display:flex; justify-content:space-between; align-items:center; gap:8px;
-    font-weight:700;
-  }
-  input[type="range"]{width:100%}
-  .value{color:var(--accent); font-weight:800}
+    .card {
+      background: var(--panel); border-radius:12px; padding:16px 16px 4px;
+      margin-bottom: 16px;
+    }
+    .income-wrap {
+      display:grid; grid-template-columns: 1fr 140px; gap:10px; align-items:center;
+    }
+    .label { font-weight:800; letter-spacing:.2px; }
+    .input-money {
+      width:100%; padding:10px 12px; border-radius:8px; border:1px solid #333;
+      background:#0f0f0f; color:var(--text); font-size:1rem;
+    }
+    .hint { font-size:.85rem; opacity:.8; margin-top:6px; }
 
-  /* Add entry */
-  form{display:grid; gap:10px}
-  input, select, button, textarea{
-    background:#0e1220; color:var(--ink);
-    border:1px solid var(--ring); border-radius:10px;
-    padding:10px 12px; font:inherit;
-  }
-  button{cursor:pointer; background:linear-gradient(180deg,#3f8cff,#345dff); border:none}
-  button.secondary{background:#0e1220; border:1px solid var(--ring)}
-  .actions{display:flex; gap:10px; flex-wrap:wrap}
+    .category { margin:18px 0; }
+    .category .rowtop { display:flex; justify-content:space-between; align-items:end; }
+    .value { color: var(--accent); font-weight:800; margin-left: 8px; }
+    input[type="range"] { width: 100%; }
 
-  /* Entries */
-  .entries{display:grid; gap:8px}
-  .entry{
-    display:flex; justify-content:space-between; align-items:center; gap:10px;
-    background:#0e1220; border:1px solid var(--ring); border-radius:12px; padding:10px;
-  }
-  .entry .note{color:var(--muted); font-size:12px}
-  .entry .amt{font-weight:800}
-  .entry .cat{font-size:12px; color:var(--accent)}
-  .totals{display:flex; justify-content:space-between; margin-top:6px; font-weight:800}
-  .danger{color:var(--bad)} .warn{color:var(--warn)} .ok{color:var(--ok)}
-</style>
+    .bottom {
+      text-align:center; margin-top: 8px; font-size: 1.2rem; font-weight: 800;
+    }
+    .pill {
+      display:inline-block; padding:6px 10px; border-radius:999px; background:#222; margin-top:6px;
+    }
+    .btnbar { display:flex; gap:8px; justify-content:center; margin-top:10px; }
+    button {
+      padding:9px 12px; border-radius:8px; border:1px solid #333; background:#1f1f1f;
+      color:var(--text); font-weight:700;
+    }
+    button:disabled { opacity:.55; }
+    .muted { opacity:.75; font-weight:600; }
+
+    /* bubble color by remaining */
+    .ok { border-color: var(--good); color: var(--good); }
+    .mid { border-color: var(--warn); color: var(--warn); }
+    .low { border-color: var(--bad); color: var(--bad); }
+  </style>
 </head>
 <body>
+  <div class="row">
+    <h1>Budget Tracker</h1>
 
-<h1>Budget Tracker</h1>
-
-<!-- BUBBLES SUMMARY -->
-<section class="card stack">
-  <div class="row" style="justify-content:space-between; align-items:center">
-    <div class="pill">💾 Data is saved locally (this device)</div>
-    <div class="totals"><span>Total Budget: <span id="totalBudget">$0</span></span><span>Total Spent: <span id="totalSpent">$0</span></span></div>
-  </div>
-  <div id="bubbleGrid" class="bubbles"></div>
-</section>
-
-<!-- BUDGET SLIDERS -->
-<section class="card stack">
-  <h3 style="margin:0">Budgets (per category)</h3>
-  <div id="sliders" class="stack"></div>
-</section>
-
-<!-- ADD ENTRY -->
-<section class="card stack">
-  <h3 style="margin:0">Add Entry</h3>
-  <form id="entryForm">
-    <select id="entryCategory"></select>
-    <input id="entryAmount" type="number" min="0" step="1" placeholder="Amount ($)">
-    <input id="entryNote"  type="text" placeholder="Note (optional)">
-    <div class="actions">
-      <button type="submit">Add Entry</button>
-      <button type="button" id="addCategoryBtn" class="secondary">+ New Category</button>
-      <button type="button" id="resetBtn" class="secondary">Reset All</button>
+    <!-- Big bubble: Remaining = Income - Total -->
+    <div id="bubble" class="total-bubble">
+      <span>
+        <span class="bubble-sub">Remaining</span>
+        <span id="remaining">$0</span>
+      </span>
     </div>
-  </form>
-</section>
 
-<!-- ENTRIES LIST -->
-<section class="card stack">
-  <h3 style="margin:0">Entries</h3>
-  <div id="entries" class="entries"></div>
-</section>
-
-<script>
-/* ========== STORAGE ========== */
-const STORAGE_KEY = "budget-app-v2";
-
-const defaultState = {
-  categories: [
-    { id: id(), name: "Food",           budget: 100 },
-    { id: id(), name: "Transport",      budget: 100 },
-    { id: id(), name: "Entertainment",  budget: 100 },
-    { id: id(), name: "Savings",        budget: 100 },
-  ],
-  entries: [] // {id, catId, amount, note, ts}
-};
-
-function load(){
-  try{
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if(!raw) return structuredClone(defaultState);
-    const parsed = JSON.parse(raw);
-    // basic shape guard
-    if(!parsed.categories || !Array.isArray(parsed.categories)) return structuredClone(defaultState);
-    if(!parsed.entries || !Array.isArray(parsed.entries)) parsed.entries = [];
-    return parsed;
-  }catch(e){
-    console.warn("Failed to load, using defaults", e);
-    return structuredClone(defaultState);
-  }
-}
-function save(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
-function id(){ return Math.random().toString(36).slice(2,10); }
-
-let state = load();
-
-/* ========== HELPERS ========== */
-function money(n){ return "$" + Number(n||0).toLocaleString(); }
-function byId(id){ return document.getElementById(id); }
-function sum(arr, sel = x=>x){ return arr.reduce((a,b)=>a + sel(b), 0); }
-function catSpent(catId){ return sum(state.entries.filter(e=>e.catId===catId), e=>Number(e.amount)); }
-
-/* ========== RENDER: BUBBLES ========== */
-function renderBubbles(){
-  const grid = byId("bubbleGrid");
-  grid.innerHTML = "";
-  state.categories.forEach(cat=>{
-    const spent = catSpent(cat.id);
-    const pct = cat.budget ? Math.min(100, Math.round((spent / cat.budget)*100)) : 0;
-    const col = pct >= 100 ? "var(--bad)" : pct >= 80 ? "var(--warn)" : "var(--ok)";
-
-    const wrap = document.createElement("div");
-    wrap.className = "bubble";
-    wrap.style.setProperty("--pct", pct);
-    wrap.style.setProperty("--col", col);
-    wrap.innerHTML = `
-      <div class="bubble-ring">
-        <div class="bubble-inner">${pct}%</div>
+    <!-- Income card -->
+    <div class="card">
+      <div class="income-wrap">
+        <div class="label">Monthly Income</div>
+        <input id="income" class="input-money" type="number" inputmode="decimal" min="0" step="1" placeholder="e.g. 3000" />
       </div>
-      <div class="numbers">${cat.name}</div>
-      <div class="numbers">${money(spent)} / ${money(cat.budget)}</div>
-    `;
-    grid.appendChild(wrap);
-  });
+      <div id="incomeHint" class="hint">Enter your income to unlock the sliders.</div>
+    </div>
 
-  // totals
-  const totalBudget = sum(state.categories, c=>Number(c.budget));
-  const totalSpent  = sum(state.entries, e=>Number(e.amount));
-  byId("totalBudget").textContent = money(totalBudget);
-  byId("totalSpent").textContent  = money(totalSpent);
-}
-
-/* ========== RENDER: SLIDERS ========== */
-function renderSliders(){
-  const host = byId("sliders");
-  host.innerHTML = "";
-  state.categories.forEach(cat=>{
-    const row = document.createElement("div");
-    row.className = "slider-row";
-    row.innerHTML = `
-      <header>
-        <div>${cat.name}</div>
-        <div class="value"><span id="v-${cat.id}">${money(cat.budget)}</span></div>
-      </header>
-      <input type="range" min="0" max="100" step="1" value="${cat.budget}" id="s-${cat.id}" />
-    `;
-    host.appendChild(row);
-
-    row.querySelector(`#s-${cat.id}`).addEventListener("input", (e)=>{
-      cat.budget = Number(e.target.value);
-      byId(`v-${cat.id}`).textContent = money(cat.budget);
-      save(); renderBubbles();
-    });
-  });
-}
-
-/* ========== RENDER: ENTRIES ========== */
-function renderEntries(){
-  const list = byId("entries");
-  list.innerHTML = "";
-  const catsById = Object.fromEntries(state.categories.map(c=>[c.id, c]));
-  // newest first
-  [...state.entries].sort((a,b)=>b.ts-a.ts).forEach(entry=>{
-    const div = document.createElement("div");
-    div.className = "entry";
-    const cat = catsById[entry.catId]?.name ?? "Unknown";
-    div.innerHTML = `
-      <div>
-        <div class="amt">${money(entry.amount)}</div>
-        <div class="note">${entry.note || ""}</div>
+    <!-- Categories -->
+    <div class="card">
+      <div class="category">
+        <div class="rowtop">
+          <div class="label">Food</div>
+          <div><span id="foodValue" class="value">$0</span></div>
+        </div>
+        <input type="range" id="food" min="0" max="100" step="1" value="0" disabled />
       </div>
-      <div class="cat"># ${cat}</div>
-      <button class="secondary" aria-label="Delete">🗑️</button>
-    `;
-    div.querySelector("button").addEventListener("click", ()=>{
-      state.entries = state.entries.filter(e=>e.id !== entry.id);
-      save(); renderAll();
+
+      <div class="category">
+        <div class="rowtop">
+          <div class="label">Transport</div>
+          <div><span id="transportValue" class="value">$0</span></div>
+        </div>
+        <input type="range" id="transport" min="0" max="100" step="1" value="0" disabled />
+      </div>
+
+      <div class="category">
+        <div class="rowtop">
+          <div class="label">Entertainment</div>
+          <div><span id="entertainmentValue" class="value">$0</span></div>
+        </div>
+        <input type="range" id="entertainment" min="0" max="100" step="1" value="0" disabled />
+      </div>
+
+      <div class="category">
+        <div class="rowtop">
+          <div class="label">Savings</div>
+          <div><span id="savingsValue" class="value">$0</span></div>
+        </div>
+        <input type="range" id="savings" min="0" max="100" step="1" value="0" disabled />
+      </div>
+
+      <div class="bottom">
+        Total: <span id="total" class="pill">$0</span>
+        <div class="muted">Sliders are capped so the sum never exceeds your income.</div>
+      </div>
+      <div class="btnbar">
+        <button id="reset">Reset</button>
+        <button id="maxOut">Auto-fill to Income</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // --- Config ---
+    const cats = ["food", "transport", "entertainment", "savings"];
+    const LS_KEY = "budget-v3";
+
+    // --- Elements ---
+    const incomeEl = document.getElementById("income");
+    const bubble = document.getElementById("bubble");
+    const remainingEl = document.getElementById("remaining");
+    const totalEl = document.getElementById("total");
+    const incomeHint = document.getElementById("incomeHint");
+    const resetBtn = document.getElementById("reset");
+    const maxBtn = document.getElementById("maxOut");
+
+    const sliders = {};
+    const reads = {};
+    cats.forEach(c => {
+      sliders[c] = document.getElementById(c);
+      reads[c] = document.getElementById(c + "Value");
     });
-    list.appendChild(div);
-  });
-}
 
-/* ========== ENTRY FORM + CATEGORY PICKER ========== */
-function renderCategoryPicker(){
-  const sel = byId("entryCategory");
-  sel.innerHTML = "";
-  state.categories.forEach(c=>{
-    const opt = document.createElement("option");
-    opt.value = c.id; opt.textContent = c.name;
-    sel.appendChild(opt);
-  });
-}
+    // --- Helpers ---
+    const money = n => "$" + (Math.round(n) || 0);
 
-/* ========== ACTIONS ========== */
-byId("entryForm").addEventListener("submit", (e)=>{
-  e.preventDefault();
-  const catId = byId("entryCategory").value;
-  const amt   = Number(byId("entryAmount").value);
-  if(!catId || isNaN(amt) || amt <= 0){ alert("Enter a positive amount"); return; }
-  const note  = byId("entryNote").value.trim();
-  state.entries.push({ id:id(), catId, amount: amt, note, ts: Date.now() });
-  byId("entryAmount").value = "";
-  byId("entryNote").value   = "";
-  save(); renderAll();
-});
+    const sumValues = () =>
+      cats.reduce((acc, c) => acc + parseInt(sliders[c].value || "0", 10), 0);
 
-byId("addCategoryBtn").addEventListener("click", ()=>{
-  const name = prompt("New category name?");
-  if(!name) return;
-  state.categories.push({ id:id(), name:name.trim(), budget: 100 });
-  save(); renderAll();
-});
+    function setSlidersEnabled(enabled) {
+      cats.forEach(c => (sliders[c].disabled = !enabled));
+      incomeHint.textContent = enabled
+        ? "Drag the sliders. Total can't exceed your income."
+        : "Enter your income to unlock the sliders.";
+    }
 
-byId("resetBtn").addEventListener("click", ()=>{
-  if(!confirm("Reset all data (budgets & entries) on this device?")) return;
-  state = structuredClone(defaultState);
-  save(); renderAll();
-});
+    function save() {
+      const data = {
+        income: parseInt(incomeEl.value || "0", 10),
+        values: Object.fromEntries(cats.map(c => [c, parseInt(sliders[c].value || "0", 10)])),
+      };
+      localStorage.setItem(LS_KEY, JSON.stringify(data));
+    }
 
-/* ========== INITIALIZE ========== */
-function renderAll(){
-  renderCategoryPicker();
-  renderSliders();
-  renderBubbles();
-  renderEntries();
-}
-renderAll();
-</script>
+    function load() {
+      try {
+        const raw = localStorage.getItem(LS_KEY);
+        if (!raw) return;
+        const data = JSON.parse(raw);
+        if (Number.isFinite(data.income)) incomeEl.value = data.income;
+        if (data.values) {
+          cats.forEach(c => {
+            if (Number.isFinite(data.values[c])) sliders[c].value = data.values[c];
+          });
+        }
+      } catch {}
+    }
+
+    function colorBubble(rem, income) {
+      bubble.classList.remove("ok", "mid", "low");
+      const pct = income ? rem / income : 1;
+      if (pct >= 0.5) bubble.classList.add("ok");
+      else if (pct >= 0.2) bubble.classList.add("mid");
+      else bubble.classList.add("low");
+    }
+
+    // Ensure the slider being moved doesn't push total over income
+    function clampActiveSlider(activeId, income) {
+      const others = cats.filter(c => c !== activeId);
+      const othersSum = others.reduce((a, c) => a + parseInt(sliders[c].value || "0", 10), 0);
+      const allowed = Math.max(0, income - othersSum);
+      const current = parseInt(sliders[activeId].value || "0", 10);
+      if (current > allowed) sliders[activeId].value = allowed;
+    }
+
+    function updateUI(activeId = null) {
+      const income = parseInt(incomeEl.value || "0", 10);
+
+      // Gate sliders by income
+      setSlidersEnabled(income > 0);
+
+      // If we’re moving a slider, clamp it so total <= income
+      if (income > 0 && activeId) clampActiveSlider(activeId, income);
+
+      // Reflect amounts
+      cats.forEach(c => {
+        reads[c].textContent = money(sliders[c].value);
+      });
+
+      const total = sumValues();
+      const remaining = Math.max(0, income - total);
+
+      totalEl.textContent = money(total);
+      remainingEl.textContent = money(remaining);
+      colorBubble(remaining, income);
+
+      save();
+    }
+
+    // Auto-fill so total == income (splits remaining across categories)
+    function maxOutToIncome() {
+      const income = parseInt(incomeEl.value || "0", 10);
+      if (!income) return;
+
+      // Keep current proportions, then scale up/down to exactly income
+      const vals = cats.map(c => parseInt(sliders[c].value || "0", 10));
+      let total = vals.reduce((a, b) => a + b, 0);
+      const remaining = income - total;
+
+      if (remaining === 0) return;
+
+      // Simple greedy fill left-to-right
+      let left = remaining;
+      cats.forEach((c, i) => {
+        if (left === 0) return;
+        const add = Math.ceil(left / (cats.length - i));
+        sliders[c].value = Math.max(0, parseInt(sliders[c].value, 10) + add);
+        total = sumValues();
+        if (total > income) sliders[c].value = Math.max(0, parseInt(sliders[c].value, 10) - (total - income));
+        left = income - sumValues();
+      });
+
+      updateUI(); // will save
+    }
+
+    function resetAll() {
+      incomeEl.value = "";
+      cats.forEach(c => (sliders[c].value = 0));
+      updateUI();
+      localStorage.removeItem(LS_KEY);
+    }
+
+    // --- Events ---
+    incomeEl.addEventListener("input", () => updateUI());
+    cats.forEach(c => {
+      sliders[c].addEventListener("input", () => updateUI(c));
+    });
+    resetBtn.addEventListener("click", resetAll);
+    maxBtn.addEventListener("click", maxOutToIncome);
+
+    // --- Init ---
+    load();
+    updateUI();
+  </script>
 </body>
 </html>
