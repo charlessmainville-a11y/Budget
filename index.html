@@ -1,99 +1,287 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Budget Tracker</title>
-  <style>
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, sans-serif;
-      margin: 0;
-      padding: 20px;
-      background: #111;
-      color: #f5f5f5;
-    }
-    h1 {
-      text-align: center;
-      margin-bottom: 20px;
-    }
-    .category {
-      margin: 20px 0;
-    }
-    label {
-      display: block;
-      margin-bottom: 8px;
-      font-weight: bold;
-    }
-    input[type="range"] {
-      width: 100%;
-    }
-    .value {
-      font-weight: bold;
-      margin-left: 10px;
-      color: #6cf;
-    }
-    #total {
-      margin-top: 30px;
-      text-align: center;
-      font-size: 1.5em;
-      color: lime;
-    }
-  </style>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Budget Tracker</title>
+<style>
+  :root{
+    --bg:#0f1115; --panel:#141824; --ink:#e9eef5; --muted:#a9b3c7;
+    --accent:#61dafb; --ok:#30d158; --warn:#ffd60a; --bad:#ff453a;
+    --ring:#2b3248;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; padding:18px; background:var(--bg); color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Inter,system-ui,sans-serif;
+  }
+  h1{margin:8px 0 14px; text-align:center; font-size:34px}
+  .row{display:flex; gap:14px; flex-wrap:wrap}
+  .card{
+    background:var(--panel); border:1px solid var(--ring); border-radius:14px;
+    padding:14px; box-shadow:0 6px 18px rgba(0,0,0,.25);
+  }
+  .stack{display:flex; flex-direction:column; gap:10px}
+  .muted{color:var(--muted)}
+  .pill{display:inline-flex; align-items:center; gap:8px; background:#0e1220; border:1px solid var(--ring); padding:6px 10px; border-radius:999px; font-size:12px}
+
+  /* Bubbles */
+  .bubbles{display:grid; grid-template-columns:repeat(auto-fill,minmax(140px,1fr)); gap:14px}
+  .bubble{
+    --pct:0; --col:var(--ok);
+    display:grid; place-items:center; gap:8px; padding:12px 8px;
+    border-radius:14px; background:#0e1220; border:1px solid var(--ring);
+  }
+  .bubble-ring{
+    width:92px; height:92px; border-radius:50%;
+    background:
+      conic-gradient(var(--col) calc(var(--pct)*1%), #27304a 0);
+    display:grid; place-items:center;
+  }
+  .bubble-inner{
+    width:74px;height:74px;border-radius:50%; background:var(--panel);
+    display:grid; place-items:center; font-weight:700;
+  }
+  .bubble label{font-size:13px;color:var(--muted)}
+  .bubble .numbers{font-size:12px;color:var(--muted)}
+
+  /* Sliders */
+  .slider-row{display:grid; gap:6px}
+  .slider-row header{
+    display:flex; justify-content:space-between; align-items:center; gap:8px;
+    font-weight:700;
+  }
+  input[type="range"]{width:100%}
+  .value{color:var(--accent); font-weight:800}
+
+  /* Add entry */
+  form{display:grid; gap:10px}
+  input, select, button, textarea{
+    background:#0e1220; color:var(--ink);
+    border:1px solid var(--ring); border-radius:10px;
+    padding:10px 12px; font:inherit;
+  }
+  button{cursor:pointer; background:linear-gradient(180deg,#3f8cff,#345dff); border:none}
+  button.secondary{background:#0e1220; border:1px solid var(--ring)}
+  .actions{display:flex; gap:10px; flex-wrap:wrap}
+
+  /* Entries */
+  .entries{display:grid; gap:8px}
+  .entry{
+    display:flex; justify-content:space-between; align-items:center; gap:10px;
+    background:#0e1220; border:1px solid var(--ring); border-radius:12px; padding:10px;
+  }
+  .entry .note{color:var(--muted); font-size:12px}
+  .entry .amt{font-weight:800}
+  .entry .cat{font-size:12px; color:var(--accent)}
+  .totals{display:flex; justify-content:space-between; margin-top:6px; font-weight:800}
+  .danger{color:var(--bad)} .warn{color:var(--warn)} .ok{color:var(--ok)}
+</style>
 </head>
 <body>
-  <h1>Budget Tracker</h1>
-  <div id="categories"></div>
-  <div id="total">Total: $0</div>
 
-  <script>
-    // categories to track
-    const categories = ["Food", "Transport", "Entertainment", "Savings"];
-    const container = document.getElementById("categories");
-    const totalDisplay = document.getElementById("total");
+<h1>Budget Tracker</h1>
 
-    // Load saved data from localStorage
-    let savedBudget = JSON.parse(localStorage.getItem("budgetData")) || {};
+<!-- BUBBLES SUMMARY -->
+<section class="card stack">
+  <div class="row" style="justify-content:space-between; align-items:center">
+    <div class="pill">💾 Data is saved locally (this device)</div>
+    <div class="totals"><span>Total Budget: <span id="totalBudget">$0</span></span><span>Total Spent: <span id="totalSpent">$0</span></span></div>
+  </div>
+  <div id="bubbleGrid" class="bubbles"></div>
+</section>
 
-    // Build sliders
-    categories.forEach(cat => {
-      const div = document.createElement("div");
-      div.className = "category";
+<!-- BUDGET SLIDERS -->
+<section class="card stack">
+  <h3 style="margin:0">Budgets (per category)</h3>
+  <div id="sliders" class="stack"></div>
+</section>
 
-      const label = document.createElement("label");
-      label.innerText = cat + ": ";
-      
-      const span = document.createElement("span");
-      span.className = "value";
-      span.id = cat + "-value";
-      span.innerText = "$" + (savedBudget[cat] || 0);
+<!-- ADD ENTRY -->
+<section class="card stack">
+  <h3 style="margin:0">Add Entry</h3>
+  <form id="entryForm">
+    <select id="entryCategory"></select>
+    <input id="entryAmount" type="number" min="0" step="1" placeholder="Amount ($)">
+    <input id="entryNote"  type="text" placeholder="Note (optional)">
+    <div class="actions">
+      <button type="submit">Add Entry</button>
+      <button type="button" id="addCategoryBtn" class="secondary">+ New Category</button>
+      <button type="button" id="resetBtn" class="secondary">Reset All</button>
+    </div>
+  </form>
+</section>
 
-      label.appendChild(span);
-      div.appendChild(label);
+<!-- ENTRIES LIST -->
+<section class="card stack">
+  <h3 style="margin:0">Entries</h3>
+  <div id="entries" class="entries"></div>
+</section>
 
-      const input = document.createElement("input");
-      input.type = "range";
-      input.min = 0;
-      input.max = 100;
-      input.value = savedBudget[cat] || 0;
+<script>
+/* ========== STORAGE ========== */
+const STORAGE_KEY = "budget-app-v2";
 
-      input.addEventListener("input", () => {
-        span.innerText = "$" + input.value;
-        savedBudget[cat] = parseInt(input.value);
-        localStorage.setItem("budgetData", JSON.stringify(savedBudget));
-        updateTotal();
-      });
+const defaultState = {
+  categories: [
+    { id: id(), name: "Food",           budget: 100 },
+    { id: id(), name: "Transport",      budget: 100 },
+    { id: id(), name: "Entertainment",  budget: 100 },
+    { id: id(), name: "Savings",        budget: 100 },
+  ],
+  entries: [] // {id, catId, amount, note, ts}
+};
 
-      div.appendChild(input);
-      container.appendChild(div);
+function load(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(!raw) return structuredClone(defaultState);
+    const parsed = JSON.parse(raw);
+    // basic shape guard
+    if(!parsed.categories || !Array.isArray(parsed.categories)) return structuredClone(defaultState);
+    if(!parsed.entries || !Array.isArray(parsed.entries)) parsed.entries = [];
+    return parsed;
+  }catch(e){
+    console.warn("Failed to load, using defaults", e);
+    return structuredClone(defaultState);
+  }
+}
+function save(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+function id(){ return Math.random().toString(36).slice(2,10); }
+
+let state = load();
+
+/* ========== HELPERS ========== */
+function money(n){ return "$" + Number(n||0).toLocaleString(); }
+function byId(id){ return document.getElementById(id); }
+function sum(arr, sel = x=>x){ return arr.reduce((a,b)=>a + sel(b), 0); }
+function catSpent(catId){ return sum(state.entries.filter(e=>e.catId===catId), e=>Number(e.amount)); }
+
+/* ========== RENDER: BUBBLES ========== */
+function renderBubbles(){
+  const grid = byId("bubbleGrid");
+  grid.innerHTML = "";
+  state.categories.forEach(cat=>{
+    const spent = catSpent(cat.id);
+    const pct = cat.budget ? Math.min(100, Math.round((spent / cat.budget)*100)) : 0;
+    const col = pct >= 100 ? "var(--bad)" : pct >= 80 ? "var(--warn)" : "var(--ok)";
+
+    const wrap = document.createElement("div");
+    wrap.className = "bubble";
+    wrap.style.setProperty("--pct", pct);
+    wrap.style.setProperty("--col", col);
+    wrap.innerHTML = `
+      <div class="bubble-ring">
+        <div class="bubble-inner">${pct}%</div>
+      </div>
+      <div class="numbers">${cat.name}</div>
+      <div class="numbers">${money(spent)} / ${money(cat.budget)}</div>
+    `;
+    grid.appendChild(wrap);
+  });
+
+  // totals
+  const totalBudget = sum(state.categories, c=>Number(c.budget));
+  const totalSpent  = sum(state.entries, e=>Number(e.amount));
+  byId("totalBudget").textContent = money(totalBudget);
+  byId("totalSpent").textContent  = money(totalSpent);
+}
+
+/* ========== RENDER: SLIDERS ========== */
+function renderSliders(){
+  const host = byId("sliders");
+  host.innerHTML = "";
+  state.categories.forEach(cat=>{
+    const row = document.createElement("div");
+    row.className = "slider-row";
+    row.innerHTML = `
+      <header>
+        <div>${cat.name}</div>
+        <div class="value"><span id="v-${cat.id}">${money(cat.budget)}</span></div>
+      </header>
+      <input type="range" min="0" max="100" step="1" value="${cat.budget}" id="s-${cat.id}" />
+    `;
+    host.appendChild(row);
+
+    row.querySelector(`#s-${cat.id}`).addEventListener("input", (e)=>{
+      cat.budget = Number(e.target.value);
+      byId(`v-${cat.id}`).textContent = money(cat.budget);
+      save(); renderBubbles();
     });
+  });
+}
 
-    function updateTotal() {
-      const sum = Object.values(savedBudget).reduce((a, b) => a + b, 0);
-      totalDisplay.innerText = "Total: $" + sum;
-    }
+/* ========== RENDER: ENTRIES ========== */
+function renderEntries(){
+  const list = byId("entries");
+  list.innerHTML = "";
+  const catsById = Object.fromEntries(state.categories.map(c=>[c.id, c]));
+  // newest first
+  [...state.entries].sort((a,b)=>b.ts-a.ts).forEach(entry=>{
+    const div = document.createElement("div");
+    div.className = "entry";
+    const cat = catsById[entry.catId]?.name ?? "Unknown";
+    div.innerHTML = `
+      <div>
+        <div class="amt">${money(entry.amount)}</div>
+        <div class="note">${entry.note || ""}</div>
+      </div>
+      <div class="cat"># ${cat}</div>
+      <button class="secondary" aria-label="Delete">🗑️</button>
+    `;
+    div.querySelector("button").addEventListener("click", ()=>{
+      state.entries = state.entries.filter(e=>e.id !== entry.id);
+      save(); renderAll();
+    });
+    list.appendChild(div);
+  });
+}
 
-    // Initial render
-    updateTotal();
-  </script>
+/* ========== ENTRY FORM + CATEGORY PICKER ========== */
+function renderCategoryPicker(){
+  const sel = byId("entryCategory");
+  sel.innerHTML = "";
+  state.categories.forEach(c=>{
+    const opt = document.createElement("option");
+    opt.value = c.id; opt.textContent = c.name;
+    sel.appendChild(opt);
+  });
+}
+
+/* ========== ACTIONS ========== */
+byId("entryForm").addEventListener("submit", (e)=>{
+  e.preventDefault();
+  const catId = byId("entryCategory").value;
+  const amt   = Number(byId("entryAmount").value);
+  if(!catId || isNaN(amt) || amt <= 0){ alert("Enter a positive amount"); return; }
+  const note  = byId("entryNote").value.trim();
+  state.entries.push({ id:id(), catId, amount: amt, note, ts: Date.now() });
+  byId("entryAmount").value = "";
+  byId("entryNote").value   = "";
+  save(); renderAll();
+});
+
+byId("addCategoryBtn").addEventListener("click", ()=>{
+  const name = prompt("New category name?");
+  if(!name) return;
+  state.categories.push({ id:id(), name:name.trim(), budget: 100 });
+  save(); renderAll();
+});
+
+byId("resetBtn").addEventListener("click", ()=>{
+  if(!confirm("Reset all data (budgets & entries) on this device?")) return;
+  state = structuredClone(defaultState);
+  save(); renderAll();
+});
+
+/* ========== INITIALIZE ========== */
+function renderAll(){
+  renderCategoryPicker();
+  renderSliders();
+  renderBubbles();
+  renderEntries();
+}
+renderAll();
+</script>
 </body>
 </html>
