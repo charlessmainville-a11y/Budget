@@ -1,263 +1,404 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>Budget Tracker</title>
-  <style>
-    :root{
-      --bg:#101010;--panel:#181818;--ink:#f5f5f5;--accent:#6cf;
-      --good:#23d07b;--warn:#ffb020;--bad:#ff5d5d
-    }
-    *{box-sizing:border-box}
-    body{margin:0;background:var(--bg);color:var(--ink);
-      font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Helvetica,Arial,sans-serif}
-    .wrap{max-width:820px;margin:0 auto;padding:22px}
-    h1{margin:0 0 14px;text-align:center}
-    .bubble{
-      width:210px;height:210px;margin:10px auto 14px;border-radius:50%;
-      display:flex;align-items:center;justify-content:center;text-align:center;
-      font-weight:900;line-height:1.15;font-size:1.8rem;border:4px solid var(--accent);color:var(--accent)
-    }
-    .sub{display:block;font-size:.85rem;font-weight:700;opacity:.9}
-    .remain{margin:0 auto 16px;text-align:center;opacity:.9}
-    .card{background:var(--panel);border-radius:12px;padding:16px;margin-bottom:16px}
-    .row{margin:18px 0}
-    .rowtop{display:flex;justify-content:space-between;align-items:end;margin-bottom:4px}
-    .label{font-weight:800}
-    .value{color:var(--accent);font-weight:800}
-    input[type="range"]{width:100%}
-    .muted{opacity:.75;font-weight:600}
-    .ok{border-color:var(--good);color:var(--good)}
-    .mid{border-color:var(--warn);color:var(--warn)}
-    .low{border-color:var(--bad);color:var(--bad)}
-    .cap{font-size:.9rem;opacity:.8;margin-left:6px}
-    .btns{display:flex;gap:8px;justify-content:center;margin-top:10px}
-    button{padding:9px 12px;border-radius:8px;border:1px solid #2d2d2d;background:#1c1c1c;color:var(--ink);font-weight:800}
-    button:disabled{opacity:.55}
-  </style>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Budget Tracker</title>
+<style>
+  :root{
+    --bg:#0f1115; --panel:#151a24; --ink:#eaf0ff; --muted:#a6b0c6;
+    --ring:#2a3246; --accent:#6cf; --ok:#2bd07b; --warn:#ffb020; --bad:#ff5d5d;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+       font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Inter,Roboto,sans-serif}
+  .wrap{max-width:860px;margin:0 auto;padding:20px}
+  h1{margin:0 0 14px;text-align:center}
+  .muted{color:var(--muted)}
+  .card{background:var(--panel);border:1px solid var(--ring);border-radius:14px;padding:16px;margin:12px 0}
+  .row{margin:16px 0}
+  .rowtop{display:flex;justify-content:space-between;align-items:end;margin-bottom:6px}
+  .label{font-weight:800}
+  .value{color:var(--accent);font-weight:800}
+  input[type="range"]{width:100%}
+  .btns{display:flex;gap:10px;justify-content:center;margin-top:10px}
+  button{padding:10px 12px;border-radius:10px;border:1px solid var(--ring);
+         background:#111827;color:var(--ink);font-weight:800}
+  button:disabled{opacity:.6}
+
+  /* Top wheel + readouts */
+  .dial-wrap{display:grid;justify-items:center;gap:10px;margin-top:8px}
+  .dial{position:relative;width:220px;height:220px}
+  canvas{width:220px;height:220px;touch-action:none}
+  .dial-read{
+    position:absolute;inset:0;display:grid;place-items:center;text-align:center;
+    font-weight:900;color:var(--accent)
+  }
+  .dial-read .sub{display:block;font-size:.9rem;color:var(--muted);font-weight:700}
+  .remain{text-align:center;margin-top:6px}
+  .ok{color:var(--ok)} .mid{color:var(--warn)} .low{color:var(--bad)}
+
+  /* Category list */
+  .muted-note{font-size:.9rem;opacity:.9}
+</style>
 </head>
 <body>
-  <div class="wrap">
-    <h1>Budget Tracker</h1>
+<div class="wrap">
+  <h1>Budget Tracker</h1>
 
-    <!-- TOP: TOTAL SPENT -->
-    <div id="bubble" class="bubble">
-      <span>
-        <span class="sub">Total</span>
-        <span id="total">$0</span>
-      </span>
-    </div>
-    <div class="remain">
-      Remaining: <strong id="remaining">$0</strong>
-    </div>
-
-    <!-- INCOME (MONTHLY, SLIDER, MAX 2800) -->
-    <div class="card">
-      <div class="row">
-        <div class="rowtop">
-          <div class="label">Monthly Income</div>
-          <div class="value" id="incomeV">$0 <span class="cap">(cap $2,800)</span></div>
+  <!-- TOP: Income dial + totals -->
+  <section class="card">
+    <div class="dial-wrap">
+      <div class="dial">
+        <canvas id="dial" width="220" height="220" aria-label="Income dial"></canvas>
+        <div class="dial-read">
+          <div>
+            <span class="sub">Per-pay Income</span>
+            <div id="incomeText" style="font-size:1.8rem">$0</div>
+            <div class="sub">(cap $1,400)</div>
+          </div>
         </div>
-        <input id="income" type="range" min="0" max="2800" step="1" value="0">
       </div>
-      <div id="gate" class="muted">Slide your monthly income to unlock the categories.</div>
-    </div>
-
-    <!-- CATEGORY SLIDERS -->
-    <div class="card" id="catsCard">
-      <div class="row">
-        <div class="rowtop"><div class="label">Bills/Daniel</div><div class="value" id="bills_danielV">$0</div></div>
-        <input type="range" id="bills_daniel" min="0" max="2800" step="1" value="0" disabled>
+      <!-- accessible fallback / fine-tune slider -->
+      <div style="width:100%;max-width:420px">
+        <div class="rowtop">
+          <div class="label">Adjust Income</div>
+          <div class="value" id="incomeTextSmall">$0</div>
+        </div>
+        <input id="incomeRange" type="range" min="0" max="1400" step="1" value="0"/>
       </div>
-
-      <div class="row">
-        <div class="rowtop"><div class="label">Phone</div><div class="value" id="phoneV">$0</div></div>
-        <input type="range" id="phone" min="0" max="2800" step="1" value="0" disabled>
-      </div>
-
-      <div class="row">
-        <div class="rowtop"><div class="label">Tim’s</div><div class="value" id="timsV">$0</div></div>
-        <input type="range" id="tims" min="0" max="2800" step="1" value="0" disabled>
-      </div>
-
-      <div class="row">
-        <div class="rowtop"><div class="label">Booze</div><div class="value" id="boozeV">$0</div></div>
-        <input type="range" id="booze" min="0" max="2800" step="1" value="0" disabled>
-      </div>
-
-      <div class="row">
-        <div class="rowtop"><div class="label">Smokes</div><div class="value" id="smokesV">$0</div></div>
-        <input type="range" id="smokes" min="0" max="2800" step="1" value="0" disabled>
-      </div>
-
-      <div class="row">
-        <div class="rowtop"><div class="label">Bus</div><div class="value" id="busV">$0</div></div>
-        <input type="range" id="bus" min="0" max="2800" step="1" value="0" disabled>
-      </div>
-
-      <div class="muted">If a slider would push the total above your income, the other sliders automatically decrease so the total stays within budget.</div>
-      <div class="btns">
-        <button id="reset">Reset</button>
-        <button id="even">Even split</button>
+      <div class="remain">
+        Total: <strong id="total">$0</strong>
+        &nbsp;&nbsp;|&nbsp;&nbsp;
+        Remaining: <strong id="remaining" class="ok">$0</strong>
       </div>
     </div>
-  </div>
+  </section>
 
-  <script>
-    // CONFIG
-    const CATS = ["bills_daniel","phone","tims","booze","smokes","bus"];
-    const LS = "budget-auto-redistribute-v3"; // new key for this structure
+  <!-- Categories -->
+  <section class="card">
+    <div class="row">
+      <div class="rowtop"><div class="label">Bills/Daniel (max $900)</div><div class="value" id="billsV">$0</div></div>
+      <input type="range" id="bills" min="0" max="900" step="1" value="0"/>
+    </div>
+    <div class="row">
+      <div class="rowtop"><div class="label">Tim’s (max $40)</div><div class="value" id="timsV">$0</div></div>
+      <input type="range" id="tims" min="0" max="40" step="1" value="0"/>
+    </div>
+    <div class="row">
+      <div class="rowtop"><div class="label">Booze (max $60)</div><div class="value" id="boozeV">$0</div></div>
+      <input type="range" id="booze" min="0" max="60" step="1" value="0"/>
+    </div>
+    <div class="row">
+      <div class="rowtop"><div class="label">Food (max $50)</div><div class="value" id="foodV">$0</div></div>
+      <input type="range" id="food" min="0" max="50" step="1" value="0"/>
+    </div>
+    <div class="row">
+      <div class="rowtop"><div class="label">Bus (max $40)</div><div class="value" id="busV">$0</div></div>
+      <input type="range" id="bus" min="0" max="40" step="1" value="0"/>
+    </div>
+    <div class="row">
+      <div class="rowtop"><div class="label">Other (max $300)</div><div class="value" id="otherV">$0</div></div>
+      <input type="range" id="other" min="0" max="300" step="1" value="0"/>
+    </div>
 
-    // Shortcuts
-    const $ = id => document.getElementById(id);
-    const incomeEl   = $("income");
-    const incomeRead = $("incomeV");
-    const gateEl     = $("gate");
-    const totalEl    = $("total");
-    const remainingEl= $("remaining");
-    const bubble     = $("bubble");
-    const resetBtn   = $("reset");
-    const evenBtn    = $("even");
+    <div class="muted-note">
+      If a slider would push the total above your income, the other sliders automatically decrease (proportionally) so the sum stays within your income.
+    </div>
 
-    const sliders = Object.fromEntries(CATS.map(c => [c, $(c)]));
-    const reads   = Object.fromEntries(CATS.map(c => [c, $(c+"V")]));
+    <div class="btns">
+      <button id="even">Even split (respect caps)</button>
+      <button id="reset">Reset</button>
+    </div>
+  </section>
+</div>
 
-    // Utils
-    const fmt = n => "$" + (Math.round(n) || 0);
-    const int = v => parseInt(v || "0", 10);
-    const sum = () => CATS.reduce((a,c)=>a + int(sliders[c].value), 0);
+<script>
+/* ===== State / config ===== */
+const LS_KEY = "budget-dial-v1";
+const INCOME_MAX = 1400;
 
-    function setEnabled(on){
-      CATS.forEach(c => sliders[c].disabled = !on);
-      gateEl.textContent = on ? "Sliders are live. Total will always stay within your income."
-                              : "Slide your monthly income to unlock the categories.";
-    }
+const CAT_IDS = ["bills","tims","booze","food","bus","other"];
+const CAPS = {
+  bills: 900,
+  tims: 40,
+  booze: 60,
+  food: 50,
+  bus: 40,
+  other: 300
+};
 
-    function colorBubble(rem, inc){
-      bubble.classList.remove("ok","mid","low");
-      if(!inc){ bubble.classList.add("ok"); return; }
-      const p = rem/inc;
-      if(p >= .5) bubble.classList.add("ok");
-      else if(p >= .2) bubble.classList.add("mid");
-      else bubble.classList.add("low");
-    }
+/* ===== DOM ===== */
+const $ = id => document.getElementById(id);
+const dialCanvas = $("dial");
+const incomeRange = $("incomeRange");
+const incomeText = $("incomeText");
+const incomeTextSmall = $("incomeTextSmall");
+const totalEl = $("total");
+const remainingEl = $("remaining");
+const evenBtn = $("even");
+const resetBtn = $("reset");
 
-    // Reduce other sliders proportionally until overflow is gone
-    function redistributeOverflow(activeId, income){
-      let overflow = sum() - income;
-      if (overflow <= 0) return;
+const sliders = Object.fromEntries(CAT_IDS.map(id => [id, $(id)]));
+const reads   = Object.fromEntries(CAT_IDS.map(id => [id, $(id+"V")]));
 
-      let passes = 0;
-      while (overflow > 0 && passes < 6){
-        passes++;
+/* ===== Utils ===== */
+const int = v => parseInt(v || "0", 10);
+const money = n => "$" + (Math.round(n)||0).toLocaleString();
+const sumCats = () => CAT_IDS.reduce((a,id)=> a + int(sliders[id].value), 0);
 
-        const others = CATS.filter(c => c !== activeId && int(sliders[c].value) > 0);
-        if (others.length === 0){
-          const allowed = Math.max(0, income - (sum() - int(sliders[activeId].value)));
-          sliders[activeId].value = allowed;
-          overflow = 0;
-          break;
-        }
+/* ===== Persistence ===== */
+function save(){
+  const data = {
+    income: int(incomeRange.value),
+    values: Object.fromEntries(CAT_IDS.map(id => [id, int(sliders[id].value)]))
+  };
+  localStorage.setItem(LS_KEY, JSON.stringify(data));
+}
+function load(){
+  try{
+    const raw = localStorage.getItem(LS_KEY);
+    if(!raw) return;
+    const d = JSON.parse(raw);
+    if(Number.isFinite(d.income)) incomeRange.value = Math.min(INCOME_MAX, Math.max(0, d.income));
+    if(d.values) CAT_IDS.forEach(id=>{
+      const cap = CAPS[id];
+      const v = Number.isFinite(d.values[id]) ? Math.min(cap, Math.max(0, d.values[id])) : 0;
+      sliders[id].value = v;
+    });
+  }catch{}
+}
 
-        const totalOthers = others.reduce((a,c)=>a + int(sliders[c].value), 0);
-        if (totalOthers === 0){
-          const allowed = Math.max(0, income - (sum() - int(sliders[activeId].value)));
-          sliders[activeId].value = allowed;
-          overflow = 0;
-          break;
-        }
+/* ===== Dial (canvas) ===== */
+const ctx = dialCanvas.getContext("2d");
+const W = dialCanvas.width, H = dialCanvas.height;
+const CX = W/2, CY = H/2, R = 92; // ring radius
+const RING_W = 18;
 
-        let removedThisPass = 0;
-        others.forEach(c=>{
-          if (overflow <= 0) return;
-          const current = int(sliders[c].value);
-          const share = Math.max(1, Math.floor(overflow * (current / totalOthers))); // ≥1 to make progress
-          const newVal = Math.max(0, current - share);
-          const actuallyRemoved = current - newVal;
-          sliders[c].value = newVal;
-          removedThisPass += actuallyRemoved;
+function drawDial(){
+  const inc = int(incomeRange.value);
+  ctx.clearRect(0,0,W,H);
+
+  // background ring
+  ctx.beginPath();
+  ctx.arc(CX, CY, R, 0, Math.PI*2);
+  ctx.strokeStyle = "#27304a";
+  ctx.lineWidth = RING_W;
+  ctx.stroke();
+
+  // value arc (0..INCOME_MAX)
+  const pct = inc / INCOME_MAX;
+  const start = -Math.PI/2; // top
+  const end = start + pct * Math.PI*2;
+
+  ctx.beginPath();
+  ctx.arc(CX, CY, R, start, end, false);
+  ctx.strokeStyle = "#6cf";
+  ctx.lineWidth = RING_W;
+  ctx.lineCap = "round";
+  ctx.stroke();
+}
+
+function angleFromPoint(x,y){
+  const dx = x - CX;
+  const dy = y - CY;
+  let ang = Math.atan2(dy, dx); // -PI..PI, 0 at +X axis
+  // convert to 0 at top, clockwise
+  ang = ang + Math.PI/2;
+  if (ang < 0) ang += Math.PI*2;
+  return ang; // 0..2PI
+}
+function incomeFromAngle(ang){
+  const pct = Math.min(1, Math.max(0, ang / (Math.PI*2)));
+  return Math.round(pct * INCOME_MAX);
+}
+let dragging = false;
+
+function pointerToIncome(ev){
+  const rect = dialCanvas.getBoundingClientRect();
+  const x = (ev.touches ? ev.touches[0].clientX : ev.clientX) - rect.left;
+  const y = (ev.touches ? ev.touches[0].clientY : ev.clientY) - rect.top;
+  const a = angleFromPoint(x,y);
+  return incomeFromAngle(a);
+}
+function onPointerDown(ev){
+  dragging = true;
+  const val = pointerToIncome(ev);
+  setIncome(val);
+  ev.preventDefault();
+}
+function onPointerMove(ev){
+  if(!dragging) return;
+  const val = pointerToIncome(ev);
+  setIncome(val);
+  ev.preventDefault();
+}
+function onPointerUp(){ dragging = false; }
+
+dialCanvas.addEventListener("mousedown", onPointerDown);
+window.addEventListener("mousemove", onPointerMove);
+window.addEventListener("mouseup", onPointerUp);
+dialCanvas.addEventListener("touchstart", onPointerDown, {passive:false});
+window.addEventListener("touchmove", onPointerMove, {passive:false});
+window.addEventListener("touchend", onPointerUp);
+
+/* ===== Logic ===== */
+function setIncome(v){
+  const clamped = Math.max(0, Math.min(INCOME_MAX, v|0));
+  if (int(incomeRange.value) !== clamped){
+    incomeRange.value = clamped;
+  }
+  reflectIncome();
+  // If categories exceed income, scale them down proportionally
+  fitCategoriesToIncome();
+  reflectCatsAndTotals();
+  save();
+  drawDial();
+}
+
+function reflectIncome(){
+  const inc = int(incomeRange.value);
+  incomeText.textContent = money(inc);
+  incomeTextSmall.textContent = money(inc);
+}
+
+function fitCategoriesToIncome(activeId = null){
+  const inc = int(incomeRange.value);
+  // clamp each to its cap first
+  CAT_IDS.forEach(id=>{
+    const cap = CAPS[id];
+    sliders[id].value = Math.min(cap, Math.max(0, int(sliders[id].value)));
+  });
+
+  let total = sumCats();
+  if (total <= inc) return;
+
+  // Reduce others proportionally (or all if activeId is null)
+  let passes = 0;
+  while (total > inc && passes < 6){
+    passes++;
+
+    const poolIds = CAT_IDS.filter(id => (activeId ? id !== activeId : true) && int(sliders[id].value) > 0);
+    if (poolIds.length === 0){
+      // Clamp activeId (or all) if nothing else to reduce
+      if (activeId){
+        const allowed = Math.max(0, inc - (sumCats() - int(sliders[activeId].value)));
+        sliders[activeId].value = Math.min(CAPS[activeId], allowed);
+      } else {
+        // scale everybody down evenly
+        const factor = inc / Math.max(1, total);
+        CAT_IDS.forEach(id=>{
+          sliders[id].value = Math.min(CAPS[id], Math.floor(int(sliders[id].value) * factor));
         });
-        overflow = Math.max(0, overflow - removedThisPass);
+      }
+      break;
+    }
+
+    const poolSum = poolIds.reduce((a,id)=> a + int(sliders[id].value), 0);
+    if (poolSum === 0){
+      if (activeId){
+        const allowed = Math.max(0, inc - (sumCats() - int(sliders[activeId].value)));
+        sliders[activeId].value = Math.min(CAPS[activeId], allowed);
+      }
+      break;
+    }
+
+    const overflow = total - inc;
+    let removed = 0;
+    poolIds.forEach(id=>{
+      if (removed >= overflow) return;
+      const cur = int(sliders[id].value);
+      const share = Math.max(1, Math.floor(overflow * (cur / poolSum)));
+      const newVal = Math.max(0, cur - share);
+      const took = cur - newVal;
+      sliders[id].value = newVal;
+      removed += took;
+    });
+
+    total = sumCats();
+  }
+}
+
+function reflectCatsAndTotals(){
+  CAT_IDS.forEach(id=>{
+    reads[id].textContent = money(sliders[id].value);
+  });
+
+  const inc = int(incomeRange.value);
+  const total = sumCats();
+  const rem = Math.max(0, inc - total);
+  totalEl.textContent = money(total);
+  remainingEl.textContent = money(rem);
+
+  remainingEl.classList.remove("ok","mid","low");
+  if (!inc || rem/inc >= .5) remainingEl.classList.add("ok");
+  else if (rem/inc >= .2)    remainingEl.classList.add("mid");
+  else                       remainingEl.classList.add("low");
+}
+
+/* ===== Events ===== */
+incomeRange.addEventListener("input", e => setIncome(int(e.target.value)));
+
+CAT_IDS.forEach(id=>{
+  sliders[id].addEventListener("input", ()=>{
+    // clamp to per-category cap
+    const cap = CAPS[id];
+    sliders[id].value = Math.min(cap, Math.max(0, int(sliders[id].value)));
+
+    // If total exceeds income, pull others down
+    fitCategoriesToIncome(id);
+    reflectCatsAndTotals();
+    save();
+    drawDial();
+  });
+});
+
+evenBtn.addEventListener("click", ()=>{
+  const inc = int(incomeRange.value);
+  if(!inc) return;
+
+  // Even split respecting caps
+  const capsArr = CAT_IDS.map(id => CAPS[id]);
+  const capSum = capsArr.reduce((a,b)=>a+b,0);
+
+  if (inc >= capSum){
+    // Fill to caps
+    CAT_IDS.forEach(id => sliders[id].value = CAPS[id]);
+  } else {
+    // water-filling: spread income across caps evenly
+    CAT_IDS.forEach(id => sliders[id].value = 0);
+    let remaining = inc;
+    let open = new Set(CAT_IDS);
+    while (remaining > 0 && open.size > 0){
+      const share = Math.floor(remaining / open.size) || 1;
+      for (const id of [...open]){
+        const space = CAPS[id] - int(sliders[id].value);
+        const add = Math.min(share, space, remaining);
+        sliders[id].value = int(sliders[id].value) + add;
+        remaining -= add;
+        if (int(sliders[id].value) >= CAPS[id]) open.delete(id);
+        if (remaining <= 0) break;
       }
     }
+  }
+  reflectCatsAndTotals(); save(); drawDial();
+});
 
-    function updateUI(activeId=null){
-      // Clamp income to 0..2800 and reflect it
-      if (int(incomeEl.value) > 2800) incomeEl.value = 2800;
-      if (int(incomeEl.value) < 0)     incomeEl.value = 0;
+resetBtn.addEventListener("click", ()=>{
+  if(!confirm("Reset income and all categories on this device?")) return;
+  incomeRange.value = 0;
+  CAT_IDS.forEach(id => sliders[id].value = 0);
+  localStorage.removeItem(LS_KEY);
+  reflectIncome();
+  reflectCatsAndTotals();
+  drawDial();
+});
 
-      const income = int(incomeEl.value);
-      incomeRead.textContent = fmt(income) + " (cap $2,800)";
-
-      setEnabled(income > 0);
-
-      if(income > 0 && activeId){
-        if (sum() > income) redistributeOverflow(activeId, income);
-      } else if (income === 0){
-        CATS.forEach(c => sliders[c].value = 0);
-      }
-
-      CATS.forEach(c => reads[c].textContent = fmt(sliders[c].value));
-      const t = sum();
-      const rem = Math.max(0, income - t);
-
-      totalEl.textContent = fmt(t);
-      remainingEl.textContent = fmt(rem);
-      colorBubble(rem, income);
-
-      save();
-    }
-
-    function save(){
-      const data = {
-        income: int(incomeEl.value),
-        values: Object.fromEntries(CATS.map(c => [c, int(sliders[c].value)]))
-      };
-      localStorage.setItem(LS, JSON.stringify(data));
-    }
-
-    function load(){
-      const raw = localStorage.getItem(LS);
-      if(!raw) return;
-      try{
-        const d = JSON.parse(raw);
-        if(Number.isFinite(d.income)) incomeEl.value = d.income;
-        if(d.values) CATS.forEach(c=>{
-          if(Number.isFinite(d.values[c])) sliders[c].value = d.values[c];
-        });
-      }catch{}
-    }
-
-    function resetAll(){
-      incomeEl.value = 0;
-      CATS.forEach(c=> sliders[c].value = 0);
-      localStorage.removeItem(LS);
-      updateUI();
-    }
-
-    function evenSplit(){
-      const income = int(incomeEl.value);
-      if(!income) return;
-      const each = Math.floor(income / CATS.length);
-      let used = 0;
-      CATS.forEach((c,i)=>{
-        const v = (i === CATS.length-1) ? income - used : each;
-        sliders[c].value = Math.max(0, v);
-        used += int(sliders[c].value);
-      });
-      updateUI();
-    }
-
-    // events
-    incomeEl.addEventListener("input", ()=> updateUI());
-    CATS.forEach(c => sliders[c].addEventListener("input", ()=> updateUI(c)));
-    resetBtn.addEventListener("click", resetAll);
-    evenBtn.addEventListener("click", evenSplit);
-
-    // init
-    load();
-    updateUI();
-  </script>
+/* ===== Init ===== */
+load();
+reflectIncome();
+reflectCatsAndTotals();
+drawDial();
+</script>
 </body>
 </html>
