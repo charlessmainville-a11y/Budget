@@ -22,22 +22,20 @@
     .sub{display:block;font-size:.85rem;font-weight:700;opacity:.9}
     .remain{margin:0 auto 16px;text-align:center;opacity:.9}
     .card{background:var(--panel);border-radius:12px;padding:16px;margin-bottom:16px}
-    .grid{display:grid;grid-template-columns:1fr 170px;gap:10px;align-items:center}
-    .label{font-weight:800}
-    .money{width:100%;padding:10px 12px;border-radius:8px;border:1px solid #2d2d2d;
-      background:#0e0e0e;color:var(--ink);font-size:1rem}
-    .hint{margin-top:6px;font-size:.85rem;opacity:.8}
     .row{margin:18px 0}
     .rowtop{display:flex;justify-content:space-between;align-items:end;margin-bottom:4px}
+    .label{font-weight:800}
     .value{color:var(--accent);font-weight:800}
     input[type="range"]{width:100%}
     .muted{opacity:.75;font-weight:600}
     .ok{border-color:var(--good);color:var(--good)}
     .mid{border-color:var(--warn);color:var(--warn)}
     .low{border-color:var(--bad);color:var(--bad)}
+    .cap{font-size:.9rem;opacity:.8;margin-left:6px}
     .btns{display:flex;gap:8px;justify-content:center;margin-top:10px}
     button{padding:9px 12px;border-radius:8px;border:1px solid #2d2d2d;background:#1c1c1c;color:var(--ink);font-weight:800}
     button:disabled{opacity:.55}
+    .pair{display:flex;gap:10px;align-items:center}
   </style>
 </head>
 <body>
@@ -55,38 +53,51 @@
       Remaining: <strong id="remaining">$0</strong>
     </div>
 
-    <!-- INCOME -->
+    <!-- INCOME (MONTHLY, SLIDER, MAX 2800) -->
     <div class="card">
-      <div class="grid">
-        <div class="label">Monthly Income (set this first)</div>
-        <input id="income" class="money" type="number" inputmode="decimal" min="0" step="1" placeholder="e.g. 3000"/>
+      <div class="row">
+        <div class="rowtop">
+          <div class="label">Monthly Income</div>
+          <div class="value" id="incomeV">$0 <span class="cap">(cap $2,800)</span></div>
+        </div>
+        <input id="income" type="range" min="0" max="2800" step="1" value="0">
       </div>
-      <div id="gate" class="hint">Enter your income to unlock the sliders.</div>
+      <div id="gate" class="muted">Slide your monthly income to unlock the categories.</div>
     </div>
 
-    <!-- SLIDERS -->
+    <!-- CATEGORY SLIDERS -->
     <div class="card" id="catsCard">
       <div class="row">
-        <div class="rowtop"><div class="label">Food</div><div class="value" id="foodV">$0</div></div>
-        <input type="range" id="food" min="0" max="100" step="1" value="0" disabled>
+        <div class="rowtop"><div class="label">Bills/Daniel</div><div class="value" id="bills_danielV">$0</div></div>
+        <input type="range" id="bills_daniel" min="0" max="2800" step="1" value="0" disabled>
       </div>
 
       <div class="row">
-        <div class="rowtop"><div class="label">Transport</div><div class="value" id="transportV">$0</div></div>
-        <input type="range" id="transport" min="0" max="100" step="1" value="0" disabled>
+        <div class="rowtop"><div class="label">Phone</div><div class="value" id="phoneV">$0</div></div>
+        <input type="range" id="phone" min="0" max="2800" step="1" value="0" disabled>
       </div>
 
       <div class="row">
-        <div class="rowtop"><div class="label">Entertainment</div><div class="value" id="entertainmentV">$0</div></div>
-        <input type="range" id="entertainment" min="0" max="100" step="1" value="0" disabled>
+        <div class="rowtop"><div class="label">Tim’s</div><div class="value" id="timsV">$0</div></div>
+        <input type="range" id="tims" min="0" max="2800" step="1" value="0" disabled>
       </div>
 
       <div class="row">
-        <div class="rowtop"><div class="label">Savings</div><div class="value" id="savingsV">$0</div></div>
-        <input type="range" id="savings" min="0" max="100" step="1" value="0" disabled>
+        <div class="rowtop"><div class="label">Booze</div><div class="value" id="boozeV">$0</div></div>
+        <input type="range" id="booze" min="0" max="2800" step="1" value="0" disabled>
       </div>
 
-      <div class="muted">If a slider would push the total above your income, the other sliders automatically decrease to keep the total within the budget.</div>
+      <div class="row">
+        <div class="rowtop"><div class="label">Smokes</div><div class="value" id="smokesV">$0</div></div>
+        <input type="range" id="smokes" min="0" max="2800" step="1" value="0" disabled>
+      </div>
+
+      <div class="row">
+        <div class="rowtop"><div class="label">Bus</div><div class="value" id="busV">$0</div></div>
+        <input type="range" id="bus" min="0" max="2800" step="1" value="0" disabled>
+      </div>
+
+      <div class="muted">If a slider would push the total above your income, the other sliders automatically decrease so the total stays within budget.</div>
       <div class="btns">
         <button id="reset">Reset</button>
         <button id="even">Even split</button>
@@ -95,11 +106,16 @@
   </div>
 
   <script>
-    const CATS = ["food","transport","entertainment","savings"];
-    const LS = "budget-auto-redistribute-v1";
+    // CONFIG
+    const CATS = [
+      "bills_daniel","phone","tims","booze","smokes","bus"
+    ];
+    const LS = "budget-auto-redistribute-v2"; // new key since structure changed
 
+    // Shortcuts
     const $ = id => document.getElementById(id);
     const incomeEl = $("income");
+    const incomeRead = $("incomeV");
     const gateEl = $("gate");
     const totalEl = $("total");
     const remainingEl = $("remaining");
@@ -110,14 +126,15 @@
     const sliders = Object.fromEntries(CATS.map(c => [c, $(c)]));
     const reads   = Object.fromEntries(CATS.map(c => [c, $(c+"V")]));
 
+    // Utils
     const fmt = n => "$" + (Math.round(n) || 0);
-    const sum = () => CATS.reduce((a,c)=>a + int(sliders[c].value), 0);
     const int = v => parseInt(v || "0", 10);
+    const sum = () => CATS.reduce((a,c)=>a + int(sliders[c].value), 0);
 
     function setEnabled(on){
       CATS.forEach(c => sliders[c].disabled = !on);
-      gateEl.textContent = on ? "Sliders are live. Total will always stay within your income." :
-                                "Enter your income to unlock the sliders.";
+      gateEl.textContent = on ? "Sliders are live. Total will always stay within your income."
+                              : "Slide your monthly income to unlock the categories.";
     }
 
     function colorBubble(rem, inc){
@@ -134,15 +151,12 @@
       let overflow = sum() - income;
       if (overflow <= 0) return;
 
-      // Safety: loop up to N passes to handle flooring
       let passes = 0;
       while (overflow > 0 && passes < 6){
         passes++;
 
-        // Eligible sliders: others with value > 0
         const others = CATS.filter(c => c !== activeId && int(sliders[c].value) > 0);
         if (others.length === 0){
-          // nothing to take from; clamp active
           const allowed = Math.max(0, income - (sum() - int(sliders[activeId].value)));
           sliders[activeId].value = allowed;
           overflow = 0;
@@ -151,19 +165,17 @@
 
         const totalOthers = others.reduce((a,c)=>a + int(sliders[c].value), 0);
         if (totalOthers === 0){
-          // same as above—clamp active
           const allowed = Math.max(0, income - (sum() - int(sliders[activeId].value)));
           sliders[activeId].value = allowed;
           overflow = 0;
           break;
         }
 
-        // Distribute the amount to subtract proportionally
         let removedThisPass = 0;
         others.forEach(c=>{
           if (overflow <= 0) return;
           const current = int(sliders[c].value);
-          const share = Math.max(1, Math.floor(overflow * (current / totalOthers))); // at least 1 to make progress
+          const share = Math.max(1, Math.floor(overflow * (current / totalOthers)));
           const newVal = Math.max(0, current - share);
           const actuallyRemoved = current - newVal;
           sliders[c].value = newVal;
@@ -175,13 +187,13 @@
 
     function updateUI(activeId=null){
       const income = int(incomeEl.value);
+      incomeRead.textContent = fmt(income) + " (cap $2,800)";
+
       setEnabled(income > 0);
 
       if(income > 0 && activeId){
-        // if moving one slider caused sum to exceed income, pull others down
         if (sum() > income) redistributeOverflow(activeId, income);
       } else if (income === 0){
-        // zero income -> force all zeros
         CATS.forEach(c => sliders[c].value = 0);
       }
 
@@ -217,7 +229,7 @@
     }
 
     function resetAll(){
-      incomeEl.value = "";
+      incomeEl.value = 0;
       CATS.forEach(c=> sliders[c].value = 0);
       localStorage.removeItem(LS);
       updateUI();
