@@ -35,7 +35,6 @@
     .btns{display:flex;gap:8px;justify-content:center;margin-top:10px}
     button{padding:9px 12px;border-radius:8px;border:1px solid #2d2d2d;background:#1c1c1c;color:var(--ink);font-weight:800}
     button:disabled{opacity:.55}
-    .pair{display:flex;gap:10px;align-items:center}
   </style>
 </head>
 <body>
@@ -107,21 +106,19 @@
 
   <script>
     // CONFIG
-    const CATS = [
-      "bills_daniel","phone","tims","booze","smokes","bus"
-    ];
-    const LS = "budget-auto-redistribute-v2"; // new key since structure changed
+    const CATS = ["bills_daniel","phone","tims","booze","smokes","bus"];
+    const LS = "budget-auto-redistribute-v3"; // new key for this structure
 
     // Shortcuts
     const $ = id => document.getElementById(id);
-    const incomeEl = $("income");
+    const incomeEl   = $("income");
     const incomeRead = $("incomeV");
-    const gateEl = $("gate");
-    const totalEl = $("total");
-    const remainingEl = $("remaining");
-    const bubble = $("bubble");
-    const resetBtn = $("reset");
-    const evenBtn = $("even");
+    const gateEl     = $("gate");
+    const totalEl    = $("total");
+    const remainingEl= $("remaining");
+    const bubble     = $("bubble");
+    const resetBtn   = $("reset");
+    const evenBtn    = $("even");
 
     const sliders = Object.fromEntries(CATS.map(c => [c, $(c)]));
     const reads   = Object.fromEntries(CATS.map(c => [c, $(c+"V")]));
@@ -175,7 +172,7 @@
         others.forEach(c=>{
           if (overflow <= 0) return;
           const current = int(sliders[c].value);
-          const share = Math.max(1, Math.floor(overflow * (current / totalOthers)));
+          const share = Math.max(1, Math.floor(overflow * (current / totalOthers))); // ≥1 to make progress
           const newVal = Math.max(0, current - share);
           const actuallyRemoved = current - newVal;
           sliders[c].value = newVal;
@@ -186,6 +183,10 @@
     }
 
     function updateUI(activeId=null){
+      // Clamp income to 0..2800 and reflect it
+      if (int(incomeEl.value) > 2800) incomeEl.value = 2800;
+      if (int(incomeEl.value) < 0)     incomeEl.value = 0;
+
       const income = int(incomeEl.value);
       incomeRead.textContent = fmt(income) + " (cap $2,800)";
 
