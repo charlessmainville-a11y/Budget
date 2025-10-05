@@ -117,12 +117,12 @@
 
 <script>
 /* ===== State / config ===== */
-const LS_KEY = "budget-dial-fun-v1";
+const LS_KEY = "budget-dial-fun-v2";
 const INCOME_MAX = 1400;
-const INCOME_STEP = 25;     // snap increments
+const INCOME_STEP = 25;     // dial/slider snap increments
 const HAPTIC_STEP = 100;    // vibrate when crossing $100 multiples
 
-// Order matters (for priority)
+// Order matters (for priority + water-filling)
 const CAT_IDS = ["bills","fun","tims","booze","food","bus","other"];
 const CAPS = { bills:900, fun:500, tims:40, booze:60, food:50, bus:40, other:300 };
 
@@ -276,77 +276,83 @@ function reflectCatsAndTotals(){
   else                       remainingEl.classList.add("low");
 }
 
+/* 
+  Fit-to-income with new rule:
+  - If over budget, pull from FUN first.
+  - If still over, reduce others proportionally (excluding the active slider to respect user intent).
+*/
 function fitCategoriesToIncome(activeId = null){
   const inc = int(incomeRange.value);
-  // clamp each to its cap
+
+  // Clamp each to its cap first
   CAT_IDS.forEach(id=>{
-    const cap = CAPS[id];
-    sliders[id].value = clamp(int(sliders[id].value), 0, cap);
+    sliders[id].value = clamp(int(sliders[id].value), 0, CAPS[id]);
   });
 
   let total = sumCats();
   if (total <= inc) return;
 
-  // Reduce others proportionally (or all if activeId is null)
-  let passes = 0;
-  while (total > inc && passes < 6){
-    passes++;
+  let overflow = total - inc;
 
-    const poolIds = CAT_IDS.filter(id => (activeId ? id !== activeId : true) && int(sliders[id].value) > 0);
-    if (poolIds.length === 0){
-      if (activeId){
-        const allowed = Math.max(0, inc - (sumCats() - int(sliders[activeId].value)));
-        sliders[activeId].value = Math.min(CAPS[activeId], allowed);
-      } else {
-        const factor = inc / Math.max(1, total);
-        CAT_IDS.forEach(id=>{
-          sliders[id].value = Math.min(CAPS[id], Math.floor(int(sliders[id].value) * factor));
-        });
-      }
-      break;
+  // 1) Take from FUN first (even if FUN is the active slider; user intent is respected in step 2)
+  if (overflow > 0){
+    const funCur = int(sliders.fun.value);
+    if (funCur > 0){
+      const take = Math.min(funCur, overflow);
+      sliders.fun.value = funCur - take;
+      overflow -= take;
     }
+  }
 
-    const poolSum = poolIds.reduce((a,id)=> a + int(sliders[id].value), 0);
-    if (poolSum === 0){
-      if (activeId){
-        const allowed = Math.max(0, inc - (sumCats() - int(sliders[activeId].value)));
-        sliders[activeId].value = Math.min(CAPS[activeId], allowed);
+  // 2) If still over, reduce others proportionally (avoid active slider)
+  if (overflow > 0){
+    let passes = 0;
+    while (overflow > 0 && passes < 6){
+      passes++;
+
+      const poolIds = CAT_IDS.filter(id => id !== "fun" && id !== activeId && int(sliders[id].value) > 0);
+      if (poolIds.length === 0){
+        // nothing else to take; last resort, clamp active
+        if (activeId){
+          const allowed = Math.max(0, inc - (sumCats() - int(sliders[activeId].value)));
+          sliders[activeId].value = Math.min(CAPS[activeId], allowed);
+        }
+        break;
       }
-      break;
+
+      const poolSum = poolIds.reduce((a,id)=> a + int(sliders[id].value), 0);
+      if (poolSum === 0){
+        if (activeId){
+          const allowed = Math.max(0, inc - (sumCats() - int(sliders[activeId].value)));
+          sliders[activeId].value = Math.min(CAPS[activeId], allowed);
+        }
+        break;
+      }
+
+      let removedThisPass = 0;
+      poolIds.forEach(id=>{
+        if (overflow <= 0) return;
+        const cur = int(sliders[id].value);
+        const share = Math.max(1, Math.floor(overflow * (cur / poolSum)));
+        const newVal = Math.max(0, cur - share);
+        const took = cur - newVal;
+        sliders[id].value = newVal;
+        removedThisPass += took;
+      });
+      overflow = Math.max(0, overflow - removedThisPass);
     }
-
-    const overflow = total - inc;
-    let removed = 0;
-    poolIds.forEach(id=>{
-      if (removed >= overflow) return;
-      const cur = int(sliders[id].value);
-      const share = Math.max(1, Math.floor(overflow * (cur / poolSum)));
-      const newVal = Math.max(0, cur - share);
-      const took = cur - newVal;
-      sliders[id].value = newVal;
-      removed += took;
-    });
-
-    total = sumCats();
   }
 }
 
-// When income changes, push leftover into FUN after Bills
 function absorbRemainderIntoFun(){
   const inc = int(incomeRange.value);
-  let total = sumCats();
+  const total = sumCats();
   if (total >= inc) return;
-
-  // First ensure Bills up to cap (but don't auto-raise Bills; it's user-controlled)
-  // Only absorb into Fun: whatever remainder fits, respecting Fun cap.
+  const remaining = inc - total;
   const funSpace = CAPS.fun - int(sliders.fun.value);
   if (funSpace <= 0) return;
-
-  const remaining = inc - total;
   const add = Math.min(funSpace, remaining);
-  if (add > 0){
-    sliders.fun.value = int(sliders.fun.value) + add;
-  }
+  if (add > 0) sliders.fun.value = int(sliders.fun.value) + add;
 }
 
 function setIncome(v, fromDial = false){
@@ -356,23 +362,17 @@ function setIncome(v, fromDial = false){
   }
   reflectIncome();
 
-  // Bring categories within income if needed
+  // Bring categories within income using the new "fun-loses-first" rule
   fitCategoriesToIncome();
 
-  // After fitting, if there's leftover, automatically feed Fun Money (up to cap)
+  // After fitting, if there's leftover income, top up FUN (up to cap)
   absorbRemainderIntoFun();
 
   reflectCatsAndTotals();
   save();
   drawDial();
-  if (fromDial) {
-    const val = int(incomeRange.value);
-    const bucket = Math.floor(val / HAPTIC_STEP);
-    if (bucket !== lastHapticBucket && "vibrate" in navigator) {
-      try { navigator.vibrate(10); } catch {}
-      lastHapticBucket = bucket;
-    }
-  }
+
+  if (fromDial) hapticIfNeeded(clamped);
 }
 
 /* ===== Events ===== */
@@ -380,10 +380,11 @@ incomeRange.addEventListener("input", e => setIncome(int(e.target.value)));
 
 CAT_IDS.forEach(id=>{
   sliders[id].addEventListener("input", ()=>{
-    // clamp and enforce caps
-    sliders[id].value = clamp(int(sliders[id].value), 0, CAPS[id]);
+    // snap to $5 (and clamp to cap)
+    const snapped = Math.round(int(sliders[id].value)/5)*5;
+    sliders[id].value = clamp(snapped, 0, CAPS[id]);
 
-    // If total exceeds income, pull others down
+    // Keep total within income; FUN loses money first if needed
     fitCategoriesToIncome(id);
     reflectCatsAndTotals();
     save();
@@ -412,12 +413,13 @@ evenBtn.addEventListener("click", ()=>{
   const REST = CAT_IDS.filter(id => id !== "bills" && id !== "fun");
   let open = new Set(REST);
   while (remaining > 0 && open.size > 0){
-    const share = Math.max(1, Math.floor(remaining / open.size));
+    const share = Math.max(5, Math.floor(remaining / open.size / 5) * 5); // even + multiple of 5
     for (const id of [...open]){
       const space = CAPS[id] - int(sliders[id].value);
       const add = Math.min(share, space, remaining);
-      sliders[id].value = int(sliders[id].value) + add;
-      remaining -= add;
+      const snappedAdd = Math.max(0, Math.floor(add/5)*5);
+      sliders[id].value = int(sliders[id].value) + snappedAdd;
+      remaining -= snappedAdd;
       if (int(sliders[id].value) >= CAPS[id]) open.delete(id);
       if (remaining <= 0) break;
     }
@@ -447,7 +449,7 @@ incomeTextSmall.textContent = money(int(incomeRange.value));
 reflectCatsAndTotals();
 drawDial();
 
-/* ===== Dial pointer wiring ===== */
+/* ===== Dial pointer wiring & helpers ===== */
 function pointerHandlerFactory(down, move, up){
   dialCanvas.addEventListener("mousedown", down);
   window.addEventListener("mousemove", move);
@@ -456,6 +458,23 @@ function pointerHandlerFactory(down, move, up){
   window.addEventListener("touchmove", move, {passive:false});
   window.addEventListener("touchend", up);
 }
+
+function hapticIfNeeded(val){
+  const bucket = Math.floor(val / HAPTIC_STEP);
+  if (bucket !== lastHapticBucket && "vibrate" in navigator) {
+    try { navigator.vibrate(10); } catch {}
+    lastHapticBucket = bucket;
+  }
+}
+
+function pointerToIncome(ev){
+  const rect = dialCanvas.getBoundingClientRect();
+  const x = (ev.touches ? ev.touches[0].clientX : ev.clientX) - rect.left;
+  const y = (ev.touches ? ev.touches[0].clientY : ev.clientY) - rect.top;
+  const a = angleFromPoint(x,y);
+  return incomeFromAngle(a);
+}
+
 pointerHandlerFactory(
   function onPointerDown(ev){
     dragging = true;
@@ -471,7 +490,6 @@ pointerHandlerFactory(
   },
   function onPointerUp(){ dragging = false; }
 );
-
 </script>
 </body>
 </html>
