@@ -3,121 +3,275 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>Budget Tracker</title>
+<title>Budget Tracker — Neon Edition</title>
 <style>
+  /* ====== DP-ish palette ====== */
   :root{
-    --bg:#0f1115; --panel:#151a24; --ink:#eaf0ff; --muted:#a6b0c6;
-    --ring:#2a3246; --accent:#6cf; --ok:#2bd07b; --warn:#ffb020; --bad:#ff5d5d;
+    --bg:#05060a;
+    --panel:#0a0d14;
+    --glass:#0e121b;
+    --ink:#e9f6ff;
+    --muted:#9cb3d1;
+    --ring:#151b29;
+    --gold:#e6bf29;
+    --neon:#5df2ff;   /* cyan */
+    --neon2:#ff4ed9;  /* magenta */
+    --ok:#18ffb2;
+    --warn:#ffb020;
+    --bad:#ff5d5d;
   }
-  *{box-sizing:border-box}
-  body{margin:0;background:var(--bg);color:var(--ink);
-       font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Inter,Roboto,sans-serif}
-  .wrap{max-width:860px;margin:0 auto;padding:20px}
-  h1{margin:0 0 14px;text-align:center}
-  .card{background:var(--panel);border:1px solid var(--ring);border-radius:14px;padding:16px;margin:12px 0}
-  .row{margin:16px 0}
-  .rowtop{display:flex;justify-content:space-between;align-items:end;margin-bottom:6px}
-  .label{font-weight:800}
-  .value{color:var(--accent);font-weight:800}
-  input[type="range"]{width:100%}
-  .btns{display:flex;gap:10px;justify-content:center;margin-top:10px}
-  button{padding:10px 12px;border-radius:10px;border:1px solid var(--ring);
-         background:#111827;color:var(--ink);font-weight:800}
-  button:disabled{opacity:.6}
 
-  /* Top wheel + readouts */
-  .dial-wrap{display:grid;justify-items:center;gap:10px;margin-top:8px}
-  .dial{position:relative;width:220px;height:220px}
-  canvas{width:220px;height:220px;touch-action:none}
-  .dial-read{
-    position:absolute;inset:0;display:grid;place-items:center;text-align:center;
-    font-weight:900;color:var(--accent)
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0;
+    color:var(--ink);
+    background: radial-gradient(1000px 600px at 20% -10%, #0b0f17 0%, #05060a 60%) fixed;
+    font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Inter,Roboto,sans-serif;
+    overflow-x:hidden;
   }
-  .dial-read .sub{display:block;font-size:.9rem;color:var(--muted);font-weight:700}
+
+  /* Animated grid + scanlines (subtle) */
+  body::before{
+    content:"";
+    position:fixed; inset:0;
+    background:
+      linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+    background-size: 30px 30px, 30px 30px;
+    mask-image: radial-gradient(ellipse at center, rgba(0,0,0,0.8), rgba(0,0,0,1) 70%);
+    pointer-events:none;
+    animation: drift 30s linear infinite;
+  }
+  body::after{
+    content:"";
+    position:fixed; inset:0;
+    background: repeating-linear-gradient(transparent 0 2px, rgba(255,255,255,0.02) 2px 3px);
+    pointer-events:none; mix-blend-mode:screen;
+  }
+  @keyframes drift{
+    from{ transform: translateY(0) }
+    to{ transform: translateY(30px) }
+  }
+
+  .wrap{
+    max-width:920px; margin:0 auto; padding:24px;
+  }
+
+  /* Header: gold accent + neon glow */
+  h1{
+    margin:0 0 16px;
+    text-align:center;
+    font-weight:900;
+    letter-spacing:0.5px;
+    color:var(--ink);
+    text-shadow:
+      0 0 12px rgba(93,242,255,0.35),
+      0 0 24px rgba(255,78,217,0.2);
+  }
+  .subtitle{
+    text-align:center;
+    color:var(--muted);
+    margin-bottom:18px;
+    font-weight:700;
+    letter-spacing:1.5px;
+  }
+
+  /* Neon card frame */
+  .card{
+    position:relative;
+    background: linear-gradient(180deg, rgba(14,18,27,0.9), rgba(10,13,20,0.9));
+    border:1px solid var(--ring);
+    border-radius:16px;
+    padding:18px;
+    margin:14px 0;
+    box-shadow:
+      0 0 0 1px rgba(93,242,255,0.08) inset,
+      0 10px 35px rgba(0,0,0,0.6);
+  }
+  .card::before{
+    content:"";
+    position:absolute; inset:-1px;
+    border-radius:16px;
+    background: linear-gradient(135deg, rgba(93,242,255,0.35), rgba(230,191,41,0.35), rgba(255,78,217,0.35));
+    filter: blur(24px);
+    opacity:.25; pointer-events:none;
+  }
+
+  .row{margin:18px 0}
+  .rowtop{display:flex;justify-content:space-between;align-items:end;margin-bottom:8px}
+  .label{
+    font-weight:900; letter-spacing:.3px;
+    display:flex; align-items:center; gap:10px;
+  }
+  .label::before{
+    content:"";
+    width:10px;height:10px;border-radius:50%;
+    background: radial-gradient(circle, var(--neon), transparent 70%);
+    box-shadow:0 0 10px var(--neon);
+  }
+  .value{
+    color:var(--neon); font-weight:900;
+    text-shadow:0 0 12px rgba(93,242,255,0.45);
+  }
+
+  /* Dial block */
+  .dial-wrap{display:grid;justify-items:center;gap:12px;margin-top:6px}
+  .dial{position:relative;width:240px;height:240px}
+  canvas{width:240px;height:240px;touch-action:none;filter: drop-shadow(0 0 12px rgba(93,242,255,0.35));}
+  .dial-read{
+    position:absolute; inset:0; display:grid; place-items:center; text-align:center;
+    color:var(--gold); font-weight:900;
+    text-shadow: 0 0 10px rgba(230,191,41,0.5), 0 0 18px rgba(230,191,41,0.25);
+  }
+  .digit{
+    font-variant-numeric:tabular-nums;
+    font-size:2rem;
+    letter-spacing:0.5px;
+  }
+  .sub{
+    display:block; font-size:.85rem; color:var(--muted); font-weight:700; letter-spacing:1px;
+  }
   .remain{text-align:center;margin-top:6px}
   .ok{color:var(--ok)} .mid{color:var(--warn)} .low{color:var(--bad)}
+
+  /* Sliders: neon rails + gold thumb */
+  input[type="range"]{
+    width:100%; appearance:none; background:transparent; height:36px;
+  }
+  input[type="range"]::-webkit-slider-runnable-track{
+    height:8px; border-radius:6px; border:1px solid #1b2336;
+    background:
+      linear-gradient(90deg, rgba(93,242,255,0.6), rgba(255,78,217,0.6)),
+      linear-gradient(#0e1422,#0a0f1a);
+    box-shadow:
+      0 0 8px rgba(93,242,255,0.35) inset,
+      0 0 8px rgba(255,78,217,0.25) inset;
+  }
+  input[type="range"]::-moz-range-track{
+    height:8px; border-radius:6px; background:linear-gradient(#0e1422,#0a0f1a);
+    border:1px solid #1b2336;
+  }
+  input[type="range"]::-webkit-slider-thumb{
+    appearance:none; width:22px; height:22px; border-radius:50%;
+    background: radial-gradient(circle at 30% 30%, #fff 0 15%, var(--gold) 16% 60%, #8a6d00 61% 100%);
+    border:1px solid rgba(255,255,255,0.3);
+    margin-top:-7px; /* center thumb */
+    box-shadow:
+      0 0 0 2px rgba(230,191,41,0.35),
+      0 6px 14px rgba(0,0,0,0.6),
+      0 0 18px rgba(230,191,41,0.45);
+  }
+  input[type="range"]::-moz-range-thumb{
+    width:22px;height:22px;border-radius:50%;
+    background: radial-gradient(circle at 30% 30%, #fff 0 15%, var(--gold) 16% 60%, #8a6d00 61% 100%);
+    border:none;
+    box-shadow:
+      0 0 0 2px rgba(230,191,41,0.35),
+      0 6px 14px rgba(0,0,0,0.6),
+      0 0 18px rgba(230,191,41,0.45);
+  }
+
+  .btns{display:flex;gap:12px;justify-content:center;margin-top:12px;flex-wrap:wrap}
+  button{
+    padding:10px 14px;
+    border-radius:12px;
+    border:1px solid rgba(230,191,41,0.3);
+    background:
+      linear-gradient(180deg, rgba(230,191,41,0.18), rgba(230,191,41,0.08)),
+      linear-gradient(180deg, #0f1421, #0a0e18);
+    color:var(--ink);
+    font-weight:900; letter-spacing:.4px;
+    box-shadow:
+      0 0 18px rgba(93,242,255,0.15),
+      inset 0 0 12px rgba(255,78,217,0.08);
+  }
+  button:hover{ box-shadow:
+      0 0 24px rgba(93,242,255,0.35),
+      inset 0 0 18px rgba(255,78,217,0.15); }
 </style>
 </head>
 <body>
-<div class="wrap">
-  <h1>Budget Tracker</h1>
+  <div class="wrap">
+    <h1>NEON BUDGET</h1>
+    <div class="subtitle">robots rock the ledger</div>
 
-  <!-- TOP: Income dial + totals -->
-  <section class="card">
-    <div class="dial-wrap">
-      <div class="dial">
-        <canvas id="dial" width="220" height="220" aria-label="Income dial"></canvas>
-        <div class="dial-read">
-          <div>
-            <span class="sub">Per-pay Income</span>
-            <div id="incomeText" style="font-size:1.8rem">$0</div>
-            <div class="sub">(cap $1,400)</div>
+    <!-- TOP: Income dial + totals -->
+    <section class="card">
+      <div class="dial-wrap">
+        <div class="dial">
+          <canvas id="dial" width="240" height="240" aria-label="Income dial"></canvas>
+          <div class="dial-read">
+            <div>
+              <span class="sub">PER-PAY INCOME</span>
+              <div id="incomeText" class="digit">$0</div>
+              <span class="sub">(cap $1,400)</span>
+            </div>
           </div>
         </div>
-      </div>
-      <!-- accessible fallback / fine-tune slider (snaps to $25) -->
-      <div style="width:100%;max-width:420px">
-        <div class="rowtop">
-          <div class="label">Adjust Income</div>
-          <div class="value" id="incomeTextSmall">$0</div>
+        <!-- Fallback range to fine-tune -->
+        <div style="width:100%;max-width:520px">
+          <div class="rowtop">
+            <div class="label">Income</div>
+            <div class="value" id="incomeTextSmall">$0</div>
+          </div>
+          <input id="incomeRange" type="range" min="0" max="1400" step="25" value="0"/>
         </div>
-        <input id="incomeRange" type="range" min="0" max="1400" step="25" value="0"/>
+        <div class="remain">
+          Total: <strong id="total">$0</strong>
+          &nbsp;&nbsp;|&nbsp;&nbsp;
+          Remaining: <strong id="remaining" class="ok">$0</strong>
+        </div>
       </div>
-      <div class="remain">
-        Total: <strong id="total">$0</strong>
-        &nbsp;&nbsp;|&nbsp;&nbsp;
-        Remaining: <strong id="remaining" class="ok">$0</strong>
+    </section>
+
+    <!-- Categories -->
+    <section class="card">
+      <div class="row">
+        <div class="rowtop"><div class="label">Bills / Daniel (max $900)</div><div class="value" id="billsV">$0</div></div>
+        <input type="range" id="bills" min="0" max="900" step="5" value="0"/>
       </div>
-    </div>
-  </section>
 
-  <!-- Categories -->
-  <section class="card">
-    <div class="row">
-      <div class="rowtop"><div class="label">Bills/Daniel (max $900)</div><div class="value" id="billsV">$0</div></div>
-      <input type="range" id="bills" min="0" max="900" step="5" value="0"/>
-    </div>
+      <div class="row">
+        <div class="rowtop"><div class="label">💸 Fun Money (max $500)</div><div class="value" id="funV">$0</div></div>
+        <input type="range" id="fun" min="0" max="500" step="5" value="0"/>
+      </div>
 
-    <div class="row">
-      <div class="rowtop"><div class="label">💸 Fun Money (max $500)</div><div class="value" id="funV">$0</div></div>
-      <input type="range" id="fun" min="0" max="500" step="5" value="0"/>
-    </div>
+      <div class="row">
+        <div class="rowtop"><div class="label">Tim’s (max $40)</div><div class="value" id="timsV">$0</div></div>
+        <input type="range" id="tims" min="0" max="40" step="5" value="0"/>
+      </div>
 
-    <div class="row">
-      <div class="rowtop"><div class="label">Tim’s (max $40)</div><div class="value" id="timsV">$0</div></div>
-      <input type="range" id="tims" min="0" max="40" step="5" value="0"/>
-    </div>
+      <div class="row">
+        <div class="rowtop"><div class="label">Booze (max $60)</div><div class="value" id="boozeV">$0</div></div>
+        <input type="range" id="booze" min="0" max="60" step="5" value="0"/>
+      </div>
 
-    <div class="row">
-      <div class="rowtop"><div class="label">Booze (max $60)</div><div class="value" id="boozeV">$0</div></div>
-      <input type="range" id="booze" min="0" max="60" step="5" value="0"/>
-    </div>
+      <div class="row">
+        <div class="rowtop"><div class="label">Food (max $50)</div><div class="value" id="foodV">$0</div></div>
+        <input type="range" id="food" min="0" max="50" step="5" value="0"/>
+      </div>
 
-    <div class="row">
-      <div class="rowtop"><div class="label">Food (max $50)</div><div class="value" id="foodV">$0</div></div>
-      <input type="range" id="food" min="0" max="50" step="5" value="0"/>
-    </div>
+      <div class="row">
+        <div class="rowtop"><div class="label">Bus (max $40)</div><div class="value" id="busV">$0</div></div>
+        <input type="range" id="bus" min="0" max="40" step="5" value="0"/>
+      </div>
 
-    <div class="row">
-      <div class="rowtop"><div class="label">Bus (max $40)</div><div class="value" id="busV">$0</div></div>
-      <input type="range" id="bus" min="0" max="40" step="5" value="0"/>
-    </div>
+      <div class="row">
+        <div class="rowtop"><div class="label">Other (max $300)</div><div class="value" id="otherV">$0</div></div>
+        <input type="range" id="other" min="0" max="300" step="5" value="0"/>
+      </div>
 
-    <div class="row">
-      <div class="rowtop"><div class="label">Other (max $300)</div><div class="value" id="otherV">$0</div></div>
-      <input type="range" id="other" min="0" max="300" step="5" value="0"/>
-    </div>
-
-    <div class="btns">
-      <button id="even">Even split (Bills → Fun priority)</button>
-      <button id="reset">Reset</button>
-    </div>
-  </section>
-</div>
+      <div class="btns">
+        <button id="even">Even split (Bills → Fun priority)</button>
+        <button id="reset">Reset</button>
+      </div>
+    </section>
+  </div>
 
 <script>
-/* ===== State / config ===== */
-const LS_KEY = "budget-dial-fun-v4";
+/* ===== Config / state (same brain, new jacket) ===== */
+const LS_KEY = "budget-dial-fun-neon-v1";
 const INCOME_MAX = 1400;
 const INCOME_STEP = 25;     // dial snaps to $25
 
@@ -126,7 +280,7 @@ const HAPTIC_DIAL_STEP   = 5;   // buzz every $5 on income dial
 const HAPTIC_DIAL_STRONG = 100; // extra buzz on $100 marks
 const HAPTIC_SLIDER_STEP = 5;   // buzz every $5 on category sliders
 
-// Order matters (for priority + water-filling)
+// Order matters (priority + water-filling)
 const CAT_IDS = ["bills","fun","tims","booze","food","bus","other"];
 const CAPS = { bills:900, fun:500, tims:40, booze:60, food:50, bus:40, other:300 };
 
@@ -140,7 +294,6 @@ const totalEl = $("total");
 const remainingEl = $("remaining");
 const evenBtn = $("even");
 const resetBtn = $("reset");
-
 const sliders = Object.fromEntries(CAT_IDS.map(id => [id, $(id)]));
 const reads   = Object.fromEntries(CAT_IDS.map(id => [id, $(id+"V")]));
 
@@ -178,50 +331,53 @@ function load(){
   }catch{}
 }
 
-/* ===== Dial (canvas) ===== */
+/* ===== Dial rendering (neon gradient stroke) ===== */
 const ctx = dialCanvas.getContext("2d");
 const W = dialCanvas.width, H = dialCanvas.height;
-const CX = W/2, CY = H/2, R = 92; // ring radius
-const RING_W = 18;
+const CX = W/2, CY = H/2, R = 100, RING_W = 18;
 
 function drawDial(){
   const inc = int(incomeRange.value);
   ctx.clearRect(0,0,W,H);
 
-  // background ring
+  // base ring
   ctx.beginPath();
   ctx.arc(CX, CY, R, 0, Math.PI*2);
-  ctx.strokeStyle = "#27304a";
+  ctx.strokeStyle = "#151b29";
   ctx.lineWidth = RING_W;
   ctx.stroke();
 
-  // value arc (0..INCOME_MAX)
+  // neon arc
   const pct = inc / INCOME_MAX;
-  const start = -Math.PI/2; // top
+  const start = -Math.PI/2;
   const end = start + pct * Math.PI*2;
+
+  const grad = ctx.createLinearGradient(0,0,W,H);
+  grad.addColorStop(0, "#5df2ff");
+  grad.addColorStop(1, "#ff4ed9");
 
   ctx.beginPath();
   ctx.arc(CX, CY, R, start, end, false);
-  ctx.strokeStyle = "#6cf";
+  ctx.strokeStyle = grad;
   ctx.lineWidth = RING_W;
   ctx.lineCap = "round";
+  ctx.shadowColor = "rgba(93,242,255,0.55)";
+  ctx.shadowBlur = 14;
   ctx.stroke();
+  ctx.shadowBlur = 0;
 }
 
+/* ===== Dial interactions ===== */
 function angleFromPoint(x,y){
-  const dx = x - CX;
-  const dy = y - CY;
-  let ang = Math.atan2(dy, dx); // -PI..PI, 0 at +X axis
-  // convert to 0 at top, clockwise
-  ang = ang + Math.PI/2;
-  if (ang < 0) ang += Math.PI*2;
-  return ang; // 0..2PI
+  const dx = x - CX, dy = y - CY;
+  let ang = Math.atan2(dy, dx); // -PI..PI (0 at +X)
+  ang += Math.PI/2; if (ang < 0) ang += Math.PI*2; // 0..2PI, 0 at top
+  return ang;
 }
 function incomeFromAngle(ang){
   const pct = clamp(ang / (Math.PI*2), 0, 1);
   const raw = Math.round(pct * INCOME_MAX);
-  // keep dial snapping to $25 for control
-  return Math.round(raw / INCOME_STEP) * INCOME_STEP;
+  return Math.round(raw / INCOME_STEP) * INCOME_STEP; // snap $25 on dial
 }
 let dragging = false;
 
@@ -232,18 +388,8 @@ function pointerToIncome(ev){
   const a = angleFromPoint(x,y);
   return incomeFromAngle(a);
 }
-function onPointerDown(ev){
-  dragging = true;
-  const val = pointerToIncome(ev);
-  setIncome(val, true);
-  ev.preventDefault();
-}
-function onPointerMove(ev){
-  if(!dragging) return;
-  const val = pointerToIncome(ev);
-  setIncome(val, true);
-  ev.preventDefault();
-}
+function onPointerDown(ev){ dragging = true; setIncome(pointerToIncome(ev), true); ev.preventDefault(); }
+function onPointerMove(ev){ if(!dragging) return; setIncome(pointerToIncome(ev), true); ev.preventDefault(); }
 function onPointerUp(){ dragging = false; }
 
 dialCanvas.addEventListener("mousedown", onPointerDown);
@@ -261,137 +407,108 @@ function reflectIncome(){
 }
 
 function reflectCatsAndTotals(){
-  CAT_IDS.forEach(id=>{
-    reads[id].textContent = money(sliders[id].value);
-  });
-
+  CAT_IDS.forEach(id=> reads[id].textContent = money(sliders[id].value));
   const inc = int(incomeRange.value);
   const total = sumCats();
   const rem = Math.max(0, inc - total);
   totalEl.textContent = money(total);
   remainingEl.textContent = money(rem);
-
   remainingEl.classList.remove("ok","mid","low");
   if (!inc || rem/inc >= .5) remainingEl.classList.add("ok");
   else if (rem/inc >= .2)    remainingEl.classList.add("mid");
   else                       remainingEl.classList.add("low");
 }
 
-/*
-  Fit-to-income with rules:
-  - If over budget, pull from FUN first.
-  - Then reduce others proportionally, but NEVER reduce Bills unless you're actively dragging Bills.
-  - Also never reduce the active slider (respect user intent).
+/* Fit-to-income:
+   - If over, take from FUN first.
+   - Then reduce others proportionally, but NEVER reduce Bills unless Bills is the active slider.
+   - Never reduce the active slider.
 */
 function fitCategoriesToIncome(activeId = null){
   const inc = int(incomeRange.value);
-
-  // Clamp each to its cap
-  CAT_IDS.forEach(id=>{
-    sliders[id].value = clamp(int(sliders[id].value), 0, CAPS[id]);
-  });
+  // clamp to caps first
+  CAT_IDS.forEach(id => sliders[id].value = clamp(int(sliders[id].value), 0, CAPS[id]));
 
   let total = sumCats();
   if (total <= inc) return;
 
   let overflow = total - inc;
 
-  // 1) Take from FUN first (even if FUN is active; it's the buffer)
+  // 1) FUN first
   if (overflow > 0){
-    const funCur = int(sliders.fun.value);
-    if (funCur > 0){
-      const take = Math.min(funCur, overflow);
-      sliders.fun.value = funCur - take;
+    const cur = int(sliders.fun.value);
+    if (cur > 0){
+      const take = Math.min(cur, overflow);
+      sliders.fun.value = cur - take;
       overflow -= take;
       if (take > 0) buzz(8);
     }
   }
 
-  // 2) If still over, reduce others proportionally (exclude Bills unless Bills is active; exclude activeId)
+  // 2) Others (protect Bills unless active; skip active)
   if (overflow > 0){
     let passes = 0;
     while (overflow > 0 && passes < 6){
       passes++;
-
-      const poolIds = CAT_IDS.filter(id => {
-        if (id === "fun") return false;             // already hit
-        if (id === activeId) return false;          // respect user intent
-        if (id === "bills" && activeId !== "bills") return false; // protect Bills
+      const poolIds = CAT_IDS.filter(id=>{
+        if (id === "fun") return false;
+        if (id === activeId) return false;
+        if (id === "bills" && activeId !== "bills") return false;
         return int(sliders[id].value) > 0;
       });
-
-      if (poolIds.length === 0){
-        // Last resort: clamp the active slider if it exists & caused overflow
+      if (!poolIds.length){
         if (activeId){
           const allowed = Math.max(0, inc - (sumCats() - int(sliders[activeId].value)));
-          const cur = int(sliders[activeId].value);
-          if (cur > allowed){
-            sliders[activeId].value = Math.min(CAPS[activeId], allowed);
-            overflow = 0;
-            buzz(6);
-          } else {
-            break;
-          }
+          sliders[activeId].value = Math.min(CAPS[activeId], allowed);
+          overflow = 0; buzz(6);
         }
         break;
       }
-
       const poolSum = poolIds.reduce((a,id)=> a + int(sliders[id].value), 0);
       if (poolSum === 0) break;
 
-      let removedThisPass = 0;
+      let removed = 0;
       poolIds.forEach(id=>{
         if (overflow <= 0) return;
         const cur = int(sliders[id].value);
         const share = Math.max(1, Math.floor(overflow * (cur / poolSum)));
-        const newVal = Math.max(0, cur - share);
-        const took = cur - newVal;
-        sliders[id].value = newVal;
-        removedThisPass += took;
+        const nv = Math.max(0, cur - share);
+        removed += (cur - nv);
+        sliders[id].value = nv;
       });
-      overflow = Math.max(0, overflow - removedThisPass);
-      if (removedThisPass > 0) buzz(6);
+      overflow = Math.max(0, overflow - removed);
+      if (removed > 0) buzz(6);
     }
   }
 }
 
-// When income increases (or you reduce categories), let Fun absorb what's left (up to its cap)
+// After fitting (or if income rises), let FUN absorb remaining up to cap
 function absorbRemainderIntoFun(){
   const inc = int(incomeRange.value);
   const total = sumCats();
   if (total >= inc) return;
   const remaining = inc - total;
-  const funSpace = CAPS.fun - int(sliders.fun.value);
-  if (funSpace <= 0) return;
-  const add = Math.min(funSpace, remaining);
-  if (add > 0){
-    sliders.fun.value = int(sliders.fun.value) + add;
-  }
+  const space = CAPS.fun - int(sliders.fun.value);
+  if (space <= 0) return;
+  const add = Math.min(space, remaining);
+  if (add > 0) sliders.fun.value = int(sliders.fun.value) + add;
 }
 
-function setIncome(v, fromDial = false){
+function setIncome(v, fromDial=false){
   const clamped = clamp(Math.round(v/INCOME_STEP)*INCOME_STEP, 0, INCOME_MAX);
-  if (int(incomeRange.value) !== clamped){
-    incomeRange.value = clamped;
-  }
+  if (int(incomeRange.value) !== clamped) incomeRange.value = clamped;
   reflectIncome();
-
-  // Keep within income with our rules
   fitCategoriesToIncome();
-
-  // Then auto-top-up Fun if there's room
   absorbRemainderIntoFun();
-
   reflectCatsAndTotals();
   save();
   drawDial();
 
-  // Haptics every $5; stronger buzz at $100 marks
   if (fromDial){
-    const vNow = int(incomeRange.value);
-    const bucket = Math.floor(vNow / HAPTIC_DIAL_STEP);
+    const val = int(incomeRange.value);
+    const bucket = Math.floor(val / HAPTIC_DIAL_STEP);
     if (bucket !== lastDialBucket){ buzz(10); lastDialBucket = bucket; }
-    if (vNow % HAPTIC_DIAL_STRONG === 0) buzzPattern([15,20,15]);
+    if (val % HAPTIC_DIAL_STRONG === 0) buzzPattern([15,20,15]);
   }
 }
 
@@ -400,21 +517,17 @@ incomeRange.addEventListener("input", e => setIncome(int(e.target.value)));
 
 CAT_IDS.forEach(id=>{
   sliders[id].addEventListener("input", ()=>{
-    // snap to $5 and clamp to cap
+    // snap to $5 and clamp
     const snapped = Math.round(int(sliders[id].value)/5)*5;
     sliders[id].value = clamp(snapped, 0, CAPS[id]);
 
     // per-slider haptics every $5
     const v = int(sliders[id].value);
     const b = Math.floor(v / HAPTIC_SLIDER_STEP);
-    if (b !== lastSliderBucket[id]) { buzz(10); lastSliderBucket[id] = b; }
+    if (b !== lastSliderBucket[id]){ buzz(10); lastSliderBucket[id]=b; }
 
-    // Keep total within income (FUN first; protect Bills unless active)
     fitCategoriesToIncome(id);
-
-    // If we created leftover (e.g., lowered something), let Fun absorb it up to cap
     absorbRemainderIntoFun();
-
     reflectCatsAndTotals();
     save();
     drawDial();
@@ -424,25 +537,16 @@ CAT_IDS.forEach(id=>{
 evenBtn.addEventListener("click", ()=>{
   const inc = int(incomeRange.value);
   if(!inc) return;
-
-  // Priority: Bills up to cap, then Fun up to cap, then water-fill the rest (respect caps)
   CAT_IDS.forEach(id => sliders[id].value = 0);
 
   let remaining = inc;
+  const billsAdd = Math.min(CAPS.bills, remaining); sliders.bills.value = billsAdd; remaining -= billsAdd;
+  const funAdd   = Math.min(CAPS.fun,   remaining); sliders.fun.value   = funAdd;   remaining -= funAdd;
 
-  // Bills first (do not exceed cap)
-  const billsAdd = Math.min(CAPS.bills, remaining);
-  sliders.bills.value = billsAdd; remaining -= billsAdd;
-
-  // Fun next
-  const funAdd = Math.min(CAPS.fun, remaining);
-  sliders.fun.value = funAdd; remaining -= funAdd;
-
-  // Water-fill the rest across remaining categories respecting caps
-  const REST = CAT_IDS.filter(id => id !== "bills" && id !== "fun");
+  const REST = CAT_IDS.filter(id => id!=="bills" && id!=="fun");
   let open = new Set(REST);
   while (remaining > 0 && open.size > 0){
-    const share = Math.max(5, Math.floor(remaining / open.size / 5) * 5); // even + multiple of 5
+    const share = Math.max(5, Math.floor(remaining / open.size / 5) * 5);
     for (const id of [...open]){
       const space = CAPS[id] - int(sliders[id].value);
       const add = Math.min(share, space, remaining);
@@ -453,7 +557,6 @@ evenBtn.addEventListener("click", ()=>{
       if (remaining <= 0) break;
     }
   }
-
   reflectCatsAndTotals(); save(); drawDial();
 });
 
@@ -478,31 +581,6 @@ incomeText.textContent = money(int(incomeRange.value));
 incomeTextSmall.textContent = money(int(incomeRange.value));
 reflectCatsAndTotals();
 drawDial();
-
-/* ===== Dial pointer wiring ===== */
-function pointerHandlerFactory(down, move, up){
-  dialCanvas.addEventListener("mousedown", down);
-  window.addEventListener("mousemove", move);
-  window.addEventListener("mouseup", up);
-  dialCanvas.addEventListener("touchstart", down, {passive:false});
-  window.addEventListener("touchmove", move, {passive:false});
-  window.addEventListener("touchend", up);
-}
-pointerHandlerFactory(
-  function onPointerDown(ev){
-    dragging = true;
-    const val = pointerToIncome(ev);
-    setIncome(val, true);
-    ev.preventDefault();
-  },
-  function onPointerMove(ev){
-    if(!dragging) return;
-    const val = pointerToIncome(ev);
-    setIncome(val, true);
-    ev.preventDefault();
-  },
-  function onPointerUp(){ dragging = false; }
-);
 </script>
 </body>
 </html>
