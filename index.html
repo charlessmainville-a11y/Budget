@@ -1,586 +1,335 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>Budget Tracker — Neon Edition</title>
-<style>
-  /* ====== DP-ish palette ====== */
-  :root{
-    --bg:#05060a;
-    --panel:#0a0d14;
-    --glass:#0e121b;
-    --ink:#e9f6ff;
-    --muted:#9cb3d1;
-    --ring:#151b29;
-    --gold:#e6bf29;
-    --neon:#5df2ff;   /* cyan */
-    --neon2:#ff4ed9;  /* magenta */
-    --ok:#18ffb2;
-    --warn:#ffb020;
-    --bad:#ff5d5d;
-  }
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Text to Music</title>
+  <style>
+    :root {
+      --bg: #0d1117;
+      --panel: #161b22;
+      --text: #e6edf3;
+      --muted: #8b949e;
+      --accent: #4cc9f0;
+      --accent-soft: rgba(76, 201, 240, 0.2);
+      --danger: #ff6b6b;
+      --ok: #7ee787;
+    }
 
-  *{box-sizing:border-box}
-  html,body{height:100%}
-  body{
-    margin:0;
-    color:var(--ink);
-    background: radial-gradient(1000px 600px at 20% -10%, #0b0f17 0%, #05060a 60%) fixed;
-    font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Inter,Roboto,sans-serif;
-    overflow-x:hidden;
-  }
+    * { box-sizing: border-box; }
 
-  /* Animated grid + scanlines (subtle) */
-  body::before{
-    content:"";
-    position:fixed; inset:0;
-    background:
-      linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
-    background-size: 30px 30px, 30px 30px;
-    mask-image: radial-gradient(ellipse at center, rgba(0,0,0,0.8), rgba(0,0,0,1) 70%);
-    pointer-events:none;
-    animation: drift 30s linear infinite;
-  }
-  body::after{
-    content:"";
-    position:fixed; inset:0;
-    background: repeating-linear-gradient(transparent 0 2px, rgba(255,255,255,0.02) 2px 3px);
-    pointer-events:none; mix-blend-mode:screen;
-  }
-  @keyframes drift{
-    from{ transform: translateY(0) }
-    to{ transform: translateY(30px) }
-  }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      background: radial-gradient(circle at top, #111827 0%, var(--bg) 60%);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      padding: 20px;
+    }
 
-  .wrap{
-    max-width:920px; margin:0 auto; padding:24px;
-  }
+    .app {
+      width: min(700px, 100%);
+      background: var(--panel);
+      border: 1px solid #30363d;
+      border-radius: 14px;
+      padding: 20px;
+      box-shadow: 0 0 0 1px rgba(255,255,255,0.02), 0 20px 40px rgba(0,0,0,0.45);
+    }
 
-  /* Header: gold accent + neon glow */
-  h1{
-    margin:0 0 16px;
-    text-align:center;
-    font-weight:900;
-    letter-spacing:0.5px;
-    color:var(--ink);
-    text-shadow:
-      0 0 12px rgba(93,242,255,0.35),
-      0 0 24px rgba(255,78,217,0.2);
-  }
-  .subtitle{
-    text-align:center;
-    color:var(--muted);
-    margin-bottom:18px;
-    font-weight:700;
-    letter-spacing:1.5px;
-  }
+    h1 {
+      margin: 0 0 6px;
+      font-size: 1.25rem;
+      text-align: center;
+      letter-spacing: 0.2px;
+    }
 
-  /* Neon card frame */
-  .card{
-    position:relative;
-    background: linear-gradient(180deg, rgba(14,18,27,0.9), rgba(10,13,20,0.9));
-    border:1px solid var(--ring);
-    border-radius:16px;
-    padding:18px;
-    margin:14px 0;
-    box-shadow:
-      0 0 0 1px rgba(93,242,255,0.08) inset,
-      0 10px 35px rgba(0,0,0,0.6);
-  }
-  .card::before{
-    content:"";
-    position:absolute; inset:-1px;
-    border-radius:16px;
-    background: linear-gradient(135deg, rgba(93,242,255,0.35), rgba(230,191,41,0.35), rgba(255,78,217,0.35));
-    filter: blur(24px);
-    opacity:.25; pointer-events:none;
-  }
+    .sub {
+      margin: 0 0 16px;
+      color: var(--muted);
+      text-align: center;
+      font-size: 0.92rem;
+    }
 
-  .row{margin:18px 0}
-  .rowtop{display:flex;justify-content:space-between;align-items:end;margin-bottom:8px}
-  .label{
-    font-weight:900; letter-spacing:.3px;
-    display:flex; align-items:center; gap:10px;
-  }
-  .label::before{
-    content:"";
-    width:10px;height:10px;border-radius:50%;
-    background: radial-gradient(circle, var(--neon), transparent 70%);
-    box-shadow:0 0 10px var(--neon);
-  }
-  .value{
-    color:var(--neon); font-weight:900;
-    text-shadow:0 0 12px rgba(93,242,255,0.45);
-  }
+    textarea {
+      width: 100%;
+      min-height: 170px;
+      resize: vertical;
+      border-radius: 10px;
+      border: 1px solid #30363d;
+      background: #0b0f14;
+      color: var(--text);
+      font: 500 0.96rem/1.5 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      padding: 14px;
+      outline: none;
+    }
 
-  /* Dial block */
-  .dial-wrap{display:grid;justify-items:center;gap:12px;margin-top:6px}
-  .dial{position:relative;width:240px;height:240px}
-  canvas{width:240px;height:240px;touch-action:none;filter: drop-shadow(0 0 12px rgba(93,242,255,0.35));}
-  .dial-read{
-    position:absolute; inset:0; display:grid; place-items:center; text-align:center;
-    color:var(--gold); font-weight:900;
-    text-shadow: 0 0 10px rgba(230,191,41,0.5), 0 0 18px rgba(230,191,41,0.25);
-  }
-  .digit{
-    font-variant-numeric:tabular-nums;
-    font-size:2rem;
-    letter-spacing:0.5px;
-  }
-  .sub{
-    display:block; font-size:.85rem; color:var(--muted); font-weight:700; letter-spacing:1px;
-  }
-  .remain{text-align:center;margin-top:6px}
-  .ok{color:var(--ok)} .mid{color:var(--warn)} .low{color:var(--bad)}
+    textarea:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-soft);
+    }
 
-  /* Sliders: neon rails + gold thumb */
-  input[type="range"]{
-    width:100%; appearance:none; background:transparent; height:36px;
-  }
-  input[type="range"]::-webkit-slider-runnable-track{
-    height:8px; border-radius:6px; border:1px solid #1b2336;
-    background:
-      linear-gradient(90deg, rgba(93,242,255,0.6), rgba(255,78,217,0.6)),
-      linear-gradient(#0e1422,#0a0f1a);
-    box-shadow:
-      0 0 8px rgba(93,242,255,0.35) inset,
-      0 0 8px rgba(255,78,217,0.25) inset;
-  }
-  input[type="range"]::-moz-range-track{
-    height:8px; border-radius:6px; background:linear-gradient(#0e1422,#0a0f1a);
-    border:1px solid #1b2336;
-  }
-  input[type="range"]::-webkit-slider-thumb{
-    appearance:none; width:22px; height:22px; border-radius:50%;
-    background: radial-gradient(circle at 30% 30%, #fff 0 15%, var(--gold) 16% 60%, #8a6d00 61% 100%);
-    border:1px solid rgba(255,255,255,0.3);
-    margin-top:-7px; /* center thumb */
-    box-shadow:
-      0 0 0 2px rgba(230,191,41,0.35),
-      0 6px 14px rgba(0,0,0,0.6),
-      0 0 18px rgba(230,191,41,0.45);
-  }
-  input[type="range"]::-moz-range-thumb{
-    width:22px;height:22px;border-radius:50%;
-    background: radial-gradient(circle at 30% 30%, #fff 0 15%, var(--gold) 16% 60%, #8a6d00 61% 100%);
-    border:none;
-    box-shadow:
-      0 0 0 2px rgba(230,191,41,0.35),
-      0 6px 14px rgba(0,0,0,0.6),
-      0 0 18px rgba(230,191,41,0.45);
-  }
+    .controls {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+      margin-top: 14px;
+    }
 
-  .btns{display:flex;gap:12px;justify-content:center;margin-top:12px;flex-wrap:wrap}
-  button{
-    padding:10px 14px;
-    border-radius:12px;
-    border:1px solid rgba(230,191,41,0.3);
-    background:
-      linear-gradient(180deg, rgba(230,191,41,0.18), rgba(230,191,41,0.08)),
-      linear-gradient(180deg, #0f1421, #0a0e18);
-    color:var(--ink);
-    font-weight:900; letter-spacing:.4px;
-    box-shadow:
-      0 0 18px rgba(93,242,255,0.15),
-      inset 0 0 12px rgba(255,78,217,0.08);
-  }
-  button:hover{ box-shadow:
-      0 0 24px rgba(93,242,255,0.35),
-      inset 0 0 18px rgba(255,78,217,0.15); }
-</style>
+    button {
+      border: 1px solid #30363d;
+      color: var(--text);
+      background: #21262d;
+      padding: 10px 14px;
+      border-radius: 9px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: 120ms ease;
+    }
+
+    button:hover { border-color: #4b5563; }
+    button:active { transform: translateY(1px); }
+
+    .play { border-color: rgba(126, 231, 135, 0.45); }
+    .stop { border-color: rgba(255, 107, 107, 0.45); }
+
+    .bpm-wrap {
+      margin-left: auto;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 240px;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      accent-color: var(--accent);
+    }
+
+    .status {
+      margin-top: 12px;
+      font-size: 0.9rem;
+      color: var(--muted);
+      min-height: 1.2rem;
+    }
+
+    .status.error { color: var(--danger); }
+    .status.ok { color: var(--ok); }
+
+    .step-indicator {
+      margin-top: 10px;
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .step {
+      width: 14px;
+      height: 14px;
+      border-radius: 4px;
+      border: 1px solid #30363d;
+      background: #0b0f14;
+    }
+
+    .step.active {
+      background: var(--accent);
+      box-shadow: 0 0 12px var(--accent);
+      border-color: var(--accent);
+    }
+  </style>
 </head>
 <body>
-  <div class="wrap">
-    <h1>NEON BUDGET</h1>
-    <div class="subtitle">robots rock the ledger</div>
+  <main class="app">
+    <h1>Text to Music</h1>
+    <p class="sub">Type patterns, press Play, and loop instantly.</p>
 
-    <!-- TOP: Income dial + totals -->
-    <section class="card">
-      <div class="dial-wrap">
-        <div class="dial">
-          <canvas id="dial" width="240" height="240" aria-label="Income dial"></canvas>
-          <div class="dial-read">
-            <div>
-              <span class="sub">PER-PAY INCOME</span>
-              <div id="incomeText" class="digit">$0</div>
-              <span class="sub">(cap $1,400)</span>
-            </div>
-          </div>
-        </div>
-        <!-- Fallback range to fine-tune -->
-        <div style="width:100%;max-width:520px">
-          <div class="rowtop">
-            <div class="label">Income</div>
-            <div class="value" id="incomeTextSmall">$0</div>
-          </div>
-          <input id="incomeRange" type="range" min="0" max="1400" step="25" value="0"/>
-        </div>
-        <div class="remain">
-          Total: <strong id="total">$0</strong>
-          &nbsp;&nbsp;|&nbsp;&nbsp;
-          Remaining: <strong id="remaining" class="ok">$0</strong>
-        </div>
+    <textarea id="patternInput" spellcheck="false">kick: x---x---x---x---
+snare: ----x-------x---
+hat: x-x-x-x-x-x-x-x-</textarea>
+
+    <div class="controls">
+      <button id="playBtn" class="play" type="button">Play</button>
+      <button id="stopBtn" class="stop" type="button">Stop</button>
+
+      <div class="bpm-wrap">
+        <label for="bpm">BPM <span id="bpmValue">110</span></label>
+        <input id="bpm" type="range" min="60" max="160" value="110" />
       </div>
-    </section>
+    </div>
 
-    <!-- Categories -->
-    <section class="card">
-      <div class="row">
-        <div class="rowtop"><div class="label">Bills / Daniel (max $900)</div><div class="value" id="billsV">$0</div></div>
-        <input type="range" id="bills" min="0" max="900" step="5" value="0"/>
-      </div>
+    <div id="status" class="status">Ready.</div>
+    <div id="stepIndicator" class="step-indicator" aria-hidden="true"></div>
+  </main>
 
-      <div class="row">
-        <div class="rowtop"><div class="label">💸 Fun Money (max $500)</div><div class="value" id="funV">$0</div></div>
-        <input type="range" id="fun" min="0" max="500" step="5" value="0"/>
-      </div>
+  <script>
+    const playBtn = document.getElementById('playBtn');
+    const stopBtn = document.getElementById('stopBtn');
+    const bpmSlider = document.getElementById('bpm');
+    const bpmValue = document.getElementById('bpmValue');
+    const patternInput = document.getElementById('patternInput');
+    const statusEl = document.getElementById('status');
+    const stepIndicator = document.getElementById('stepIndicator');
 
-      <div class="row">
-        <div class="rowtop"><div class="label">Tim’s (max $40)</div><div class="value" id="timsV">$0</div></div>
-        <input type="range" id="tims" min="0" max="40" step="5" value="0"/>
-      </div>
+    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    let buffers = {};
+    let stepIndex = 0;
+    let parsed = null;
+    let nextStepTime = 0;
+    let lookaheadTimer = null;
 
-      <div class="row">
-        <div class="rowtop"><div class="label">Booze (max $60)</div><div class="value" id="boozeV">$0</div></div>
-        <input type="range" id="booze" min="0" max="60" step="5" value="0"/>
-      </div>
+    const SOUND_URLS = {
+      kick: 'https://cdn.jsdelivr.net/gh/jakesgordon/javascript-drum-machine/sounds/kick.wav',
+      snare: 'https://cdn.jsdelivr.net/gh/jakesgordon/javascript-drum-machine/sounds/snare.wav',
+      hat: 'https://cdn.jsdelivr.net/gh/jakesgordon/javascript-drum-machine/sounds/hihat.wav'
+    };
 
-      <div class="row">
-        <div class="rowtop"><div class="label">Food (max $50)</div><div class="value" id="foodV">$0</div></div>
-        <input type="range" id="food" min="0" max="50" step="5" value="0"/>
-      </div>
-
-      <div class="row">
-        <div class="rowtop"><div class="label">Bus (max $40)</div><div class="value" id="busV">$0</div></div>
-        <input type="range" id="bus" min="0" max="40" step="5" value="0"/>
-      </div>
-
-      <div class="row">
-        <div class="rowtop"><div class="label">Other (max $300)</div><div class="value" id="otherV">$0</div></div>
-        <input type="range" id="other" min="0" max="300" step="5" value="0"/>
-      </div>
-
-      <div class="btns">
-        <button id="even">Even split (Bills → Fun priority)</button>
-        <button id="reset">Reset</button>
-      </div>
-    </section>
-  </div>
-
-<script>
-/* ===== Config / state (same brain, new jacket) ===== */
-const LS_KEY = "budget-dial-fun-neon-v1";
-const INCOME_MAX = 1400;
-const INCOME_STEP = 25;     // dial snaps to $25
-
-// Haptics (Android/Chrome; iOS Safari does not support navigator.vibrate)
-const HAPTIC_DIAL_STEP   = 5;   // buzz every $5 on income dial
-const HAPTIC_DIAL_STRONG = 100; // extra buzz on $100 marks
-const HAPTIC_SLIDER_STEP = 5;   // buzz every $5 on category sliders
-
-// Order matters (priority + water-filling)
-const CAT_IDS = ["bills","fun","tims","booze","food","bus","other"];
-const CAPS = { bills:900, fun:500, tims:40, booze:60, food:50, bus:40, other:300 };
-
-/* ===== DOM ===== */
-const $ = id => document.getElementById(id);
-const dialCanvas = $("dial");
-const incomeRange = $("incomeRange");
-const incomeText = $("incomeText");
-const incomeTextSmall = $("incomeTextSmall");
-const totalEl = $("total");
-const remainingEl = $("remaining");
-const evenBtn = $("even");
-const resetBtn = $("reset");
-const sliders = Object.fromEntries(CAT_IDS.map(id => [id, $(id)]));
-const reads   = Object.fromEntries(CAT_IDS.map(id => [id, $(id+"V")]));
-
-/* ===== Utils ===== */
-const int = v => parseInt(v || "0", 10);
-const money = n => "$" + (Math.round(n)||0).toLocaleString();
-const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
-const sumCats = () => CAT_IDS.reduce((a,id)=> a + int(sliders[id].value), 0);
-
-/* ===== Haptics helpers ===== */
-let lastDialBucket = 0;
-const lastSliderBucket = Object.fromEntries(CAT_IDS.map(id => [id, 0]));
-function buzz(ms=10){ if("vibrate" in navigator){ try{ navigator.vibrate(ms);}catch{} } }
-function buzzPattern(p){ if("vibrate" in navigator){ try{ navigator.vibrate(p);}catch{} } }
-
-/* ===== Persistence ===== */
-function save(){
-  const data = {
-    income: int(incomeRange.value),
-    values: Object.fromEntries(CAT_IDS.map(id => [id, int(sliders[id].value)]))
-  };
-  localStorage.setItem(LS_KEY, JSON.stringify(data));
-}
-function load(){
-  try{
-    const raw = localStorage.getItem(LS_KEY);
-    if(!raw) return;
-    const d = JSON.parse(raw);
-    if(Number.isFinite(d.income)) incomeRange.value = clamp(Math.round(d.income/INCOME_STEP)*INCOME_STEP, 0, INCOME_MAX);
-    if(d.values) CAT_IDS.forEach(id=>{
-      const cap = CAPS[id];
-      const v = Number.isFinite(d.values[id]) ? clamp(d.values[id], 0, cap) : 0;
-      sliders[id].value = v;
-    });
-  }catch{}
-}
-
-/* ===== Dial rendering (neon gradient stroke) ===== */
-const ctx = dialCanvas.getContext("2d");
-const W = dialCanvas.width, H = dialCanvas.height;
-const CX = W/2, CY = H/2, R = 100, RING_W = 18;
-
-function drawDial(){
-  const inc = int(incomeRange.value);
-  ctx.clearRect(0,0,W,H);
-
-  // base ring
-  ctx.beginPath();
-  ctx.arc(CX, CY, R, 0, Math.PI*2);
-  ctx.strokeStyle = "#151b29";
-  ctx.lineWidth = RING_W;
-  ctx.stroke();
-
-  // neon arc
-  const pct = inc / INCOME_MAX;
-  const start = -Math.PI/2;
-  const end = start + pct * Math.PI*2;
-
-  const grad = ctx.createLinearGradient(0,0,W,H);
-  grad.addColorStop(0, "#5df2ff");
-  grad.addColorStop(1, "#ff4ed9");
-
-  ctx.beginPath();
-  ctx.arc(CX, CY, R, start, end, false);
-  ctx.strokeStyle = grad;
-  ctx.lineWidth = RING_W;
-  ctx.lineCap = "round";
-  ctx.shadowColor = "rgba(93,242,255,0.55)";
-  ctx.shadowBlur = 14;
-  ctx.stroke();
-  ctx.shadowBlur = 0;
-}
-
-/* ===== Dial interactions ===== */
-function angleFromPoint(x,y){
-  const dx = x - CX, dy = y - CY;
-  let ang = Math.atan2(dy, dx); // -PI..PI (0 at +X)
-  ang += Math.PI/2; if (ang < 0) ang += Math.PI*2; // 0..2PI, 0 at top
-  return ang;
-}
-function incomeFromAngle(ang){
-  const pct = clamp(ang / (Math.PI*2), 0, 1);
-  const raw = Math.round(pct * INCOME_MAX);
-  return Math.round(raw / INCOME_STEP) * INCOME_STEP; // snap $25 on dial
-}
-let dragging = false;
-
-function pointerToIncome(ev){
-  const rect = dialCanvas.getBoundingClientRect();
-  const x = (ev.touches ? ev.touches[0].clientX : ev.clientX) - rect.left;
-  const y = (ev.touches ? ev.touches[0].clientY : ev.clientY) - rect.top;
-  const a = angleFromPoint(x,y);
-  return incomeFromAngle(a);
-}
-function onPointerDown(ev){ dragging = true; setIncome(pointerToIncome(ev), true); ev.preventDefault(); }
-function onPointerMove(ev){ if(!dragging) return; setIncome(pointerToIncome(ev), true); ev.preventDefault(); }
-function onPointerUp(){ dragging = false; }
-
-dialCanvas.addEventListener("mousedown", onPointerDown);
-window.addEventListener("mousemove", onPointerMove);
-window.addEventListener("mouseup", onPointerUp);
-dialCanvas.addEventListener("touchstart", onPointerDown, {passive:false});
-window.addEventListener("touchmove", onPointerMove, {passive:false});
-window.addEventListener("touchend", onPointerUp);
-
-/* ===== Core logic ===== */
-function reflectIncome(){
-  const inc = int(incomeRange.value);
-  incomeText.textContent = money(inc);
-  incomeTextSmall.textContent = money(inc);
-}
-
-function reflectCatsAndTotals(){
-  CAT_IDS.forEach(id=> reads[id].textContent = money(sliders[id].value));
-  const inc = int(incomeRange.value);
-  const total = sumCats();
-  const rem = Math.max(0, inc - total);
-  totalEl.textContent = money(total);
-  remainingEl.textContent = money(rem);
-  remainingEl.classList.remove("ok","mid","low");
-  if (!inc || rem/inc >= .5) remainingEl.classList.add("ok");
-  else if (rem/inc >= .2)    remainingEl.classList.add("mid");
-  else                       remainingEl.classList.add("low");
-}
-
-/* Fit-to-income:
-   - If over, take from FUN first.
-   - Then reduce others proportionally, but NEVER reduce Bills unless Bills is the active slider.
-   - Never reduce the active slider.
-*/
-function fitCategoriesToIncome(activeId = null){
-  const inc = int(incomeRange.value);
-  // clamp to caps first
-  CAT_IDS.forEach(id => sliders[id].value = clamp(int(sliders[id].value), 0, CAPS[id]));
-
-  let total = sumCats();
-  if (total <= inc) return;
-
-  let overflow = total - inc;
-
-  // 1) FUN first
-  if (overflow > 0){
-    const cur = int(sliders.fun.value);
-    if (cur > 0){
-      const take = Math.min(cur, overflow);
-      sliders.fun.value = cur - take;
-      overflow -= take;
-      if (take > 0) buzz(8);
+    function setStatus(message, type = '') {
+      statusEl.textContent = message;
+      statusEl.className = `status ${type}`.trim();
     }
-  }
 
-  // 2) Others (protect Bills unless active; skip active)
-  if (overflow > 0){
-    let passes = 0;
-    while (overflow > 0 && passes < 6){
-      passes++;
-      const poolIds = CAT_IDS.filter(id=>{
-        if (id === "fun") return false;
-        if (id === activeId) return false;
-        if (id === "bills" && activeId !== "bills") return false;
-        return int(sliders[id].value) > 0;
-      });
-      if (!poolIds.length){
-        if (activeId){
-          const allowed = Math.max(0, inc - (sumCats() - int(sliders[activeId].value)));
-          sliders[activeId].value = Math.min(CAPS[activeId], allowed);
-          overflow = 0; buzz(6);
-        }
-        break;
+    function createStepUI(length) {
+      stepIndicator.innerHTML = '';
+      for (let i = 0; i < length; i += 1) {
+        const dot = document.createElement('span');
+        dot.className = 'step';
+        stepIndicator.appendChild(dot);
       }
-      const poolSum = poolIds.reduce((a,id)=> a + int(sliders[id].value), 0);
-      if (poolSum === 0) break;
-
-      let removed = 0;
-      poolIds.forEach(id=>{
-        if (overflow <= 0) return;
-        const cur = int(sliders[id].value);
-        const share = Math.max(1, Math.floor(overflow * (cur / poolSum)));
-        const nv = Math.max(0, cur - share);
-        removed += (cur - nv);
-        sliders[id].value = nv;
-      });
-      overflow = Math.max(0, overflow - removed);
-      if (removed > 0) buzz(6);
     }
-  }
-}
 
-// After fitting (or if income rises), let FUN absorb remaining up to cap
-function absorbRemainderIntoFun(){
-  const inc = int(incomeRange.value);
-  const total = sumCats();
-  if (total >= inc) return;
-  const remaining = inc - total;
-  const space = CAPS.fun - int(sliders.fun.value);
-  if (space <= 0) return;
-  const add = Math.min(space, remaining);
-  if (add > 0) sliders.fun.value = int(sliders.fun.value) + add;
-}
-
-function setIncome(v, fromDial=false){
-  const clamped = clamp(Math.round(v/INCOME_STEP)*INCOME_STEP, 0, INCOME_MAX);
-  if (int(incomeRange.value) !== clamped) incomeRange.value = clamped;
-  reflectIncome();
-  fitCategoriesToIncome();
-  absorbRemainderIntoFun();
-  reflectCatsAndTotals();
-  save();
-  drawDial();
-
-  if (fromDial){
-    const val = int(incomeRange.value);
-    const bucket = Math.floor(val / HAPTIC_DIAL_STEP);
-    if (bucket !== lastDialBucket){ buzz(10); lastDialBucket = bucket; }
-    if (val % HAPTIC_DIAL_STRONG === 0) buzzPattern([15,20,15]);
-  }
-}
-
-/* ===== Events ===== */
-incomeRange.addEventListener("input", e => setIncome(int(e.target.value)));
-
-CAT_IDS.forEach(id=>{
-  sliders[id].addEventListener("input", ()=>{
-    // snap to $5 and clamp
-    const snapped = Math.round(int(sliders[id].value)/5)*5;
-    sliders[id].value = clamp(snapped, 0, CAPS[id]);
-
-    // per-slider haptics every $5
-    const v = int(sliders[id].value);
-    const b = Math.floor(v / HAPTIC_SLIDER_STEP);
-    if (b !== lastSliderBucket[id]){ buzz(10); lastSliderBucket[id]=b; }
-
-    fitCategoriesToIncome(id);
-    absorbRemainderIntoFun();
-    reflectCatsAndTotals();
-    save();
-    drawDial();
-  });
-});
-
-evenBtn.addEventListener("click", ()=>{
-  const inc = int(incomeRange.value);
-  if(!inc) return;
-  CAT_IDS.forEach(id => sliders[id].value = 0);
-
-  let remaining = inc;
-  const billsAdd = Math.min(CAPS.bills, remaining); sliders.bills.value = billsAdd; remaining -= billsAdd;
-  const funAdd   = Math.min(CAPS.fun,   remaining); sliders.fun.value   = funAdd;   remaining -= funAdd;
-
-  const REST = CAT_IDS.filter(id => id!=="bills" && id!=="fun");
-  let open = new Set(REST);
-  while (remaining > 0 && open.size > 0){
-    const share = Math.max(5, Math.floor(remaining / open.size / 5) * 5);
-    for (const id of [...open]){
-      const space = CAPS[id] - int(sliders[id].value);
-      const add = Math.min(share, space, remaining);
-      const snappedAdd = Math.max(0, Math.floor(add/5)*5);
-      sliders[id].value = int(sliders[id].value) + snappedAdd;
-      remaining -= snappedAdd;
-      if (int(sliders[id].value) >= CAPS[id]) open.delete(id);
-      if (remaining <= 0) break;
+    function highlightStep(index) {
+      const dots = stepIndicator.children;
+      for (let i = 0; i < dots.length; i += 1) {
+        dots[i].classList.toggle('active', i === index);
+      }
     }
-  }
-  reflectCatsAndTotals(); save(); drawDial();
-});
 
-resetBtn.addEventListener("click", ()=>{
-  if(!confirm("Reset income and all categories on this device?")) return;
-  incomeRange.value = 0;
-  CAT_IDS.forEach(id => sliders[id].value = 0);
-  localStorage.removeItem(LS_KEY);
-  incomeText.textContent = "$0";
-  incomeTextSmall.textContent = "$0";
-  totalEl.textContent = "$0";
-  remainingEl.textContent = "$0";
-  remainingEl.className = "ok";
-  drawDial();
-  lastDialBucket = 0;
-  Object.keys(lastSliderBucket).forEach(k=> lastSliderBucket[k]=0);
-});
+    function parsePatterns(text) {
+      const lines = text.split('\n').map(line => line.trim()).filter(Boolean);
+      if (!lines.length) {
+        throw new Error('Please enter at least one pattern line.');
+      }
 
-/* ===== Init ===== */
-load();
-incomeText.textContent = money(int(incomeRange.value));
-incomeTextSmall.textContent = money(int(incomeRange.value));
-reflectCatsAndTotals();
-drawDial();
-</script>
+      const tracks = {};
+      let maxLength = 0;
+
+      for (const line of lines) {
+        const parts = line.split(':');
+        if (parts.length !== 2) {
+          throw new Error(`Invalid line: "${line}". Use instrument: pattern`);
+        }
+
+        const instrument = parts[0].trim().toLowerCase();
+        const pattern = parts[1].trim();
+
+        if (!SOUND_URLS[instrument]) {
+          throw new Error(`Unknown instrument "${instrument}". Use kick, snare, or hat.`);
+        }
+
+        if (!pattern || /[^x-]/i.test(pattern)) {
+          throw new Error(`Pattern for ${instrument} must use only x and -.`);
+        }
+
+        const steps = [...pattern].map(ch => ch.toLowerCase() === 'x');
+        tracks[instrument] = steps;
+        maxLength = Math.max(maxLength, steps.length);
+      }
+
+      if (maxLength === 0) {
+        throw new Error('Patterns cannot be empty.');
+      }
+
+      return { tracks, length: maxLength };
+    }
+
+    async function loadSample(url) {
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`Failed to load ${url}`);
+      }
+      const arrayBuffer = await response.arrayBuffer();
+      return audioContext.decodeAudioData(arrayBuffer);
+    }
+
+    async function ensureBuffers() {
+      if (Object.keys(buffers).length === 3) return;
+      const entries = await Promise.all(Object.entries(SOUND_URLS).map(async ([name, url]) => {
+        const buffer = await loadSample(url);
+        return [name, buffer];
+      }));
+      buffers = Object.fromEntries(entries);
+    }
+
+    function playSound(name, when) {
+      const buffer = buffers[name];
+      if (!buffer) return;
+      const source = audioContext.createBufferSource();
+      source.buffer = buffer;
+      source.connect(audioContext.destination);
+      source.start(when);
+    }
+
+    function scheduler() {
+      const secondsPerStep = 60 / Number(bpmSlider.value) / 4;
+      while (nextStepTime < audioContext.currentTime + 0.12) {
+        for (const [name, steps] of Object.entries(parsed.tracks)) {
+          if (steps[stepIndex % steps.length]) {
+            playSound(name, nextStepTime);
+          }
+        }
+
+        const currentIndex = stepIndex % parsed.length;
+        const delayMs = Math.max(0, (nextStepTime - audioContext.currentTime) * 1000);
+        window.setTimeout(() => highlightStep(currentIndex), delayMs);
+
+        nextStepTime += secondsPerStep;
+        stepIndex += 1;
+      }
+    }
+
+    function startLoop() {
+      stopLoop();
+      parsed = parsePatterns(patternInput.value);
+      createStepUI(parsed.length);
+      stepIndex = 0;
+      nextStepTime = audioContext.currentTime + 0.03;
+      scheduler();
+      lookaheadTimer = window.setInterval(scheduler, 25);
+      setStatus('Playing.', 'ok');
+    }
+
+    function stopLoop() {
+      if (lookaheadTimer) {
+        window.clearInterval(lookaheadTimer);
+        lookaheadTimer = null;
+      }
+      highlightStep(-1);
+      setStatus('Stopped.');
+    }
+
+    bpmSlider.addEventListener('input', () => {
+      bpmValue.textContent = bpmSlider.value;
+    });
+
+    playBtn.addEventListener('click', async () => {
+      try {
+        if (audioContext.state !== 'running') {
+          await audioContext.resume();
+        }
+        await ensureBuffers();
+        startLoop();
+      } catch (error) {
+        setStatus(error.message || 'Unable to start playback.', 'error');
+      }
+    });
+
+    stopBtn.addEventListener('click', () => {
+      stopLoop();
+    });
+
+    createStepUI(16);
+  </script>
 </body>
 </html>
