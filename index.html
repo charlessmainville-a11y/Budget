@@ -2,18 +2,20 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Text to Music</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>Dead-Simple Browser Music App</title>
   <style>
     :root {
-      --bg: #0d1117;
-      --panel: #161b22;
-      --text: #e6edf3;
-      --muted: #8b949e;
-      --accent: #4cc9f0;
-      --accent-soft: rgba(76, 201, 240, 0.2);
-      --danger: #ff6b6b;
-      --ok: #7ee787;
+      color-scheme: dark;
+      --bg: #0f1115;
+      --card: #171a21;
+      --text: #f5f7ff;
+      --muted: #a8b0c3;
+      --accent: #70a5ff;
+      --accent-2: #4f83e2;
+      --danger: #dd5555;
+      --danger-2: #b54242;
+      --border: #2a2f3b;
     }
 
     * { box-sizing: border-box; }
@@ -21,315 +23,300 @@
     body {
       margin: 0;
       min-height: 100vh;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: radial-gradient(circle at top, #1b2130, var(--bg) 60%);
+      color: var(--text);
       display: grid;
       place-items: center;
-      background: radial-gradient(circle at top, #111827 0%, var(--bg) 60%);
-      color: var(--text);
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
       padding: 20px;
     }
 
     .app {
-      width: min(700px, 100%);
-      background: var(--panel);
-      border: 1px solid #30363d;
-      border-radius: 14px;
-      padding: 20px;
-      box-shadow: 0 0 0 1px rgba(255,255,255,0.02), 0 20px 40px rgba(0,0,0,0.45);
+      width: min(720px, 100%);
+      background: color-mix(in oklab, var(--card) 92%, black);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 16px;
+      box-shadow: 0 12px 40px rgba(0,0,0,.35);
     }
 
     h1 {
-      margin: 0 0 6px;
-      font-size: 1.25rem;
+      margin: 0 0 12px;
+      font-size: 1.15rem;
+      font-weight: 700;
       text-align: center;
-      letter-spacing: 0.2px;
-    }
-
-    .sub {
-      margin: 0 0 16px;
-      color: var(--muted);
-      text-align: center;
-      font-size: 0.92rem;
     }
 
     textarea {
       width: 100%;
       min-height: 170px;
-      resize: vertical;
-      border-radius: 10px;
-      border: 1px solid #30363d;
-      background: #0b0f14;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: #0f1320;
       color: var(--text);
-      font: 500 0.96rem/1.5 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-      padding: 14px;
+      font: 600 1rem/1.5 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      padding: 12px;
+      resize: vertical;
       outline: none;
     }
 
     textarea:focus {
       border-color: var(--accent);
-      box-shadow: 0 0 0 3px var(--accent-soft);
+      box-shadow: 0 0 0 3px rgba(112, 165, 255, 0.2);
     }
 
     .controls {
       display: flex;
-      gap: 10px;
       flex-wrap: wrap;
       align-items: center;
-      margin-top: 14px;
+      gap: 10px;
+      margin-top: 12px;
     }
 
     button {
-      border: 1px solid #30363d;
-      color: var(--text);
-      background: #21262d;
-      padding: 10px 14px;
-      border-radius: 9px;
-      font-weight: 600;
+      border: 0;
+      border-radius: 10px;
+      color: white;
+      font-weight: 700;
+      font-size: 1rem;
+      padding: 12px 16px;
+      min-width: 90px;
       cursor: pointer;
-      transition: 120ms ease;
+      -webkit-tap-highlight-color: transparent;
     }
 
-    button:hover { border-color: #4b5563; }
-    button:active { transform: translateY(1px); }
+    #playBtn { background: var(--accent); }
+    #playBtn:active { background: var(--accent-2); }
+    #stopBtn { background: var(--danger); }
+    #stopBtn:active { background: var(--danger-2); }
 
-    .play { border-color: rgba(126, 231, 135, 0.45); }
-    .stop { border-color: rgba(255, 107, 107, 0.45); }
+    .bpm {
+      display: grid;
+      gap: 6px;
+      flex: 1;
+      min-width: 220px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px;
+      background: #111622;
+    }
 
-    .bpm-wrap {
-      margin-left: auto;
+    .row {
       display: flex;
-      align-items: center;
-      gap: 10px;
-      min-width: 240px;
+      justify-content: space-between;
+      font-size: 0.95rem;
+      color: var(--muted);
     }
 
     input[type="range"] {
       width: 100%;
-      accent-color: var(--accent);
-    }
-
-    .status {
-      margin-top: 12px;
-      font-size: 0.9rem;
-      color: var(--muted);
-      min-height: 1.2rem;
-    }
-
-    .status.error { color: var(--danger); }
-    .status.ok { color: var(--ok); }
-
-    .step-indicator {
-      margin-top: 10px;
-      display: flex;
-      gap: 6px;
-      flex-wrap: wrap;
+      touch-action: pan-x;
     }
 
     .step {
-      width: 14px;
-      height: 14px;
-      border-radius: 4px;
-      border: 1px solid #30363d;
-      background: #0b0f14;
+      margin-top: 10px;
+      text-align: center;
+      color: var(--muted);
+      font: 700 0.95rem/1.4 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      min-height: 1.4em;
     }
 
-    .step.active {
-      background: var(--accent);
-      box-shadow: 0 0 12px var(--accent);
-      border-color: var(--accent);
+    .tip {
+      margin-top: 10px;
+      color: var(--muted);
+      font-size: .9rem;
+      text-align: center;
     }
   </style>
 </head>
 <body>
   <main class="app">
-    <h1>Text to Music</h1>
-    <p class="sub">Type patterns, press Play, and loop instantly.</p>
+    <h1>Dead-Simple Browser Music App</h1>
 
     <textarea id="patternInput" spellcheck="false">kick: x---x---x---x---
 snare: ----x-------x---
 hat: x-x-x-x-x-x-x-x-</textarea>
 
     <div class="controls">
-      <button id="playBtn" class="play" type="button">Play</button>
-      <button id="stopBtn" class="stop" type="button">Stop</button>
+      <button id="playBtn" type="button">Play</button>
+      <button id="stopBtn" type="button">Stop</button>
 
-      <div class="bpm-wrap">
-        <label for="bpm">BPM <span id="bpmValue">110</span></label>
-        <input id="bpm" type="range" min="60" max="160" value="110" />
-      </div>
+      <label class="bpm" for="bpmSlider">
+        <div class="row">
+          <span>BPM</span>
+          <strong id="bpmValue">120</strong>
+        </div>
+        <input id="bpmSlider" type="range" min="60" max="160" value="120" step="1" />
+      </label>
     </div>
 
-    <div id="status" class="status">Ready.</div>
-    <div id="stepIndicator" class="step-indicator" aria-hidden="true"></div>
+    <div id="stepIndicator" class="step">step: -</div>
+    <div class="tip">x = play · - = silence · 16 steps (16th notes)</div>
   </main>
 
   <script>
-    const playBtn = document.getElementById('playBtn');
-    const stopBtn = document.getElementById('stopBtn');
-    const bpmSlider = document.getElementById('bpm');
-    const bpmValue = document.getElementById('bpmValue');
-    const patternInput = document.getElementById('patternInput');
-    const statusEl = document.getElementById('status');
-    const stepIndicator = document.getElementById('stepIndicator');
+    (() => {
+      const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      const lookaheadMs = 25;
+      const scheduleAheadSec = 0.12;
 
-    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-    let buffers = {};
-    let stepIndex = 0;
-    let parsed = null;
-    let nextStepTime = 0;
-    let lookaheadTimer = null;
+      const patternInput = document.getElementById('patternInput');
+      const playBtn = document.getElementById('playBtn');
+      const stopBtn = document.getElementById('stopBtn');
+      const bpmSlider = document.getElementById('bpmSlider');
+      const bpmValue = document.getElementById('bpmValue');
+      const stepIndicator = document.getElementById('stepIndicator');
 
-    const SOUND_URLS = {
-      kick: 'https://cdn.jsdelivr.net/gh/jakesgordon/javascript-drum-machine/sounds/kick.wav',
-      snare: 'https://cdn.jsdelivr.net/gh/jakesgordon/javascript-drum-machine/sounds/snare.wav',
-      hat: 'https://cdn.jsdelivr.net/gh/jakesgordon/javascript-drum-machine/sounds/hihat.wav'
-    };
+      let isPlaying = false;
+      let schedulerId = null;
+      let currentStep = 0;
+      let nextNoteTime = 0;
+      let parsedPattern = {};
 
-    function setStatus(message, type = '') {
-      statusEl.textContent = message;
-      statusEl.className = `status ${type}`.trim();
-    }
+      function parsePattern(text) {
+        const out = {};
+        const lines = text.split('\n').map((l) => l.trim()).filter(Boolean);
 
-    function createStepUI(length) {
-      stepIndicator.innerHTML = '';
-      for (let i = 0; i < length; i += 1) {
-        const dot = document.createElement('span');
-        dot.className = 'step';
-        stepIndicator.appendChild(dot);
-      }
-    }
+        for (const line of lines) {
+          const parts = line.split(':');
+          if (parts.length < 2) continue;
 
-    function highlightStep(index) {
-      const dots = stepIndicator.children;
-      for (let i = 0; i < dots.length; i += 1) {
-        dots[i].classList.toggle('active', i === index);
-      }
-    }
-
-    function parsePatterns(text) {
-      const lines = text.split('\n').map(line => line.trim()).filter(Boolean);
-      if (!lines.length) {
-        throw new Error('Please enter at least one pattern line.');
-      }
-
-      const tracks = {};
-      let maxLength = 0;
-
-      for (const line of lines) {
-        const parts = line.split(':');
-        if (parts.length !== 2) {
-          throw new Error(`Invalid line: "${line}". Use instrument: pattern`);
+          const name = parts[0].trim().toLowerCase();
+          const raw = parts.slice(1).join(':').replace(/\s+/g, '');
+          const pattern = raw.slice(0, 16).padEnd(16, '-');
+          out[name] = [...pattern].map((ch) => ch === 'x');
         }
 
-        const instrument = parts[0].trim().toLowerCase();
-        const pattern = parts[1].trim();
+        return out;
+      }
 
-        if (!SOUND_URLS[instrument]) {
-          throw new Error(`Unknown instrument "${instrument}". Use kick, snare, or hat.`);
+      function stepDurationSec() {
+        const bpm = Number(bpmSlider.value);
+        return 60 / bpm / 4; // 16th note
+      }
+
+      function updateBpmLabel() {
+        bpmValue.textContent = bpmSlider.value;
+      }
+
+      function makeNoiseBuffer() {
+        const duration = 0.2;
+        const length = Math.floor(audioContext.sampleRate * duration);
+        const buffer = audioContext.createBuffer(1, length, audioContext.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < length; i++) {
+          data[i] = Math.random() * 2 - 1;
         }
+        return buffer;
+      }
 
-        if (!pattern || /[^x-]/i.test(pattern)) {
-          throw new Error(`Pattern for ${instrument} must use only x and -.`);
+      const noiseBuffer = makeNoiseBuffer();
+
+      function playKick(time) {
+        const osc = audioContext.createOscillator();
+        const gain = audioContext.createGain();
+
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(140, time);
+        osc.frequency.exponentialRampToValueAtTime(45, time + 0.12);
+
+        gain.gain.setValueAtTime(1, time);
+        gain.gain.exponentialRampToValueAtTime(0.0001, time + 0.12);
+
+        osc.connect(gain);
+        gain.connect(audioContext.destination);
+
+        osc.start(time);
+        osc.stop(time + 0.13);
+      }
+
+      function playSnare(time) {
+        const noise = audioContext.createBufferSource();
+        const noiseFilter = audioContext.createBiquadFilter();
+        const noiseGain = audioContext.createGain();
+
+        noise.buffer = noiseBuffer;
+        noiseFilter.type = 'highpass';
+        noiseFilter.frequency.setValueAtTime(1200, time);
+
+        noiseGain.gain.setValueAtTime(0.9, time);
+        noiseGain.gain.exponentialRampToValueAtTime(0.0001, time + 0.16);
+
+        noise.connect(noiseFilter);
+        noiseFilter.connect(noiseGain);
+        noiseGain.connect(audioContext.destination);
+
+        noise.start(time);
+        noise.stop(time + 0.2);
+      }
+
+      function playHat(time) {
+        const noise = audioContext.createBufferSource();
+        const filter = audioContext.createBiquadFilter();
+        const gain = audioContext.createGain();
+
+        noise.buffer = noiseBuffer;
+        filter.type = 'highpass';
+        filter.frequency.setValueAtTime(7000, time);
+
+        gain.gain.setValueAtTime(0.28, time);
+        gain.gain.exponentialRampToValueAtTime(0.0001, time + 0.045);
+
+        noise.connect(filter);
+        filter.connect(gain);
+        gain.connect(audioContext.destination);
+
+        noise.start(time);
+        noise.stop(time + 0.05);
+      }
+
+      function triggerStep(step, time) {
+        if (parsedPattern.kick && parsedPattern.kick[step]) playKick(time);
+        if (parsedPattern.snare && parsedPattern.snare[step]) playSnare(time);
+        if (parsedPattern.hat && parsedPattern.hat[step]) playHat(time);
+      }
+
+      function scheduleStep() {
+        while (nextNoteTime < audioContext.currentTime + scheduleAheadSec) {
+          triggerStep(currentStep, nextNoteTime);
+          const shownStep = currentStep;
+          setTimeout(() => {
+            stepIndicator.textContent = `step: ${shownStep + 1} / 16`;
+          }, Math.max(0, (nextNoteTime - audioContext.currentTime) * 1000));
+
+          nextNoteTime += stepDurationSec();
+          currentStep = (currentStep + 1) % 16;
         }
-
-        const steps = [...pattern].map(ch => ch.toLowerCase() === 'x');
-        tracks[instrument] = steps;
-        maxLength = Math.max(maxLength, steps.length);
       }
 
-      if (maxLength === 0) {
-        throw new Error('Patterns cannot be empty.');
-      }
-
-      return { tracks, length: maxLength };
-    }
-
-    async function loadSample(url) {
-      const response = await fetch(url);
-      if (!response.ok) {
-        throw new Error(`Failed to load ${url}`);
-      }
-      const arrayBuffer = await response.arrayBuffer();
-      return audioContext.decodeAudioData(arrayBuffer);
-    }
-
-    async function ensureBuffers() {
-      if (Object.keys(buffers).length === 3) return;
-      const entries = await Promise.all(Object.entries(SOUND_URLS).map(async ([name, url]) => {
-        const buffer = await loadSample(url);
-        return [name, buffer];
-      }));
-      buffers = Object.fromEntries(entries);
-    }
-
-    function playSound(name, when) {
-      const buffer = buffers[name];
-      if (!buffer) return;
-      const source = audioContext.createBufferSource();
-      source.buffer = buffer;
-      source.connect(audioContext.destination);
-      source.start(when);
-    }
-
-    function scheduler() {
-      const secondsPerStep = 60 / Number(bpmSlider.value) / 4;
-      while (nextStepTime < audioContext.currentTime + 0.12) {
-        for (const [name, steps] of Object.entries(parsed.tracks)) {
-          if (steps[stepIndex % steps.length]) {
-            playSound(name, nextStepTime);
-          }
-        }
-
-        const currentIndex = stepIndex % parsed.length;
-        const delayMs = Math.max(0, (nextStepTime - audioContext.currentTime) * 1000);
-        window.setTimeout(() => highlightStep(currentIndex), delayMs);
-
-        nextStepTime += secondsPerStep;
-        stepIndex += 1;
-      }
-    }
-
-    function startLoop() {
-      stopLoop();
-      parsed = parsePatterns(patternInput.value);
-      createStepUI(parsed.length);
-      stepIndex = 0;
-      nextStepTime = audioContext.currentTime + 0.03;
-      scheduler();
-      lookaheadTimer = window.setInterval(scheduler, 25);
-      setStatus('Playing.', 'ok');
-    }
-
-    function stopLoop() {
-      if (lookaheadTimer) {
-        window.clearInterval(lookaheadTimer);
-        lookaheadTimer = null;
-      }
-      highlightStep(-1);
-      setStatus('Stopped.');
-    }
-
-    bpmSlider.addEventListener('input', () => {
-      bpmValue.textContent = bpmSlider.value;
-    });
-
-    playBtn.addEventListener('click', async () => {
-      try {
-        if (audioContext.state !== 'running') {
+      async function start() {
+        parsedPattern = parsePattern(patternInput.value);
+        if (audioContext.state === 'suspended') {
           await audioContext.resume();
         }
-        await ensureBuffers();
-        startLoop();
-      } catch (error) {
-        setStatus(error.message || 'Unable to start playback.', 'error');
+        if (isPlaying) return;
+
+        isPlaying = true;
+        currentStep = 0;
+        nextNoteTime = audioContext.currentTime + 0.03;
+        schedulerId = setInterval(scheduleStep, lookaheadMs);
       }
-    });
 
-    stopBtn.addEventListener('click', () => {
-      stopLoop();
-    });
+      function stop() {
+        isPlaying = false;
+        if (schedulerId !== null) {
+          clearInterval(schedulerId);
+          schedulerId = null;
+        }
+        stepIndicator.textContent = 'step: -';
+      }
 
-    createStepUI(16);
+      playBtn.addEventListener('click', start);
+      stopBtn.addEventListener('click', stop);
+
+      bpmSlider.addEventListener('input', updateBpmLabel);
+      updateBpmLabel();
+    })();
   </script>
 </body>
 </html>
