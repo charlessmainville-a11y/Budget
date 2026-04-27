@@ -119,6 +119,53 @@
       touch-action: pan-x;
     }
 
+    .synth-controls {
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 10px;
+      margin-bottom: 14px;
+      background: rgba(11, 18, 33, 0.8);
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 10px;
+    }
+
+    .field {
+      display: grid;
+      gap: 6px;
+      align-content: start;
+    }
+
+    .field label {
+      color: var(--muted);
+      font-size: 0.76rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .field input[type="range"] {
+      width: 100%;
+      accent-color: var(--active);
+      touch-action: pan-x;
+    }
+
+    .toggle {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 10px;
+      background: #111a30;
+      min-height: 48px;
+    }
+
+    .toggle input {
+      width: 18px;
+      height: 18px;
+      accent-color: var(--active);
+    }
+
     .grid {
       border: 1px solid var(--border);
       border-radius: 14px;
@@ -177,6 +224,8 @@
     @media (max-width: 700px) {
       .app { padding: 14px; }
       .row { grid-template-columns: 50px repeat(16, minmax(0, 1fr)); gap: 4px; }
+      .synth-controls { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .field select { min-width: 0; width: 100%; }
     }
   </style>
 </head>
@@ -192,6 +241,47 @@
 
     <section class="controls" id="knobArea"></section>
 
+    <section class="synth-controls" aria-label="Synth controls">
+      <div class="field">
+        <label for="synthScale">Scale</label>
+        <select id="synthScale">
+          <option value="C major">C major</option>
+          <option value="C minor" selected>C minor</option>
+          <option value="D minor">D minor</option>
+          <option value="A minor">A minor</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="synthPatternMode">Note Pattern</label>
+        <select id="synthPatternMode">
+          <option value="ascending">Ascending</option>
+          <option value="descending">Descending</option>
+          <option value="random">Random</option>
+          <option value="fixed">Fixed</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="synthWave">Wave</label>
+        <select id="synthWave">
+          <option value="sine">sine</option>
+          <option value="sawtooth" selected>sawtooth</option>
+          <option value="square">square</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="synthAttack">Attack <strong id="synthAttackValue">0.02s</strong></label>
+        <input type="range" id="synthAttack" min="0" max="1" step="0.01" value="0.02" />
+      </div>
+      <div class="field">
+        <label for="synthDecay">Decay <strong id="synthDecayValue">0.22s</strong></label>
+        <input type="range" id="synthDecay" min="0" max="1" step="0.01" value="0.22" />
+      </div>
+      <label class="toggle" for="synthBassMode">
+        <input type="checkbox" id="synthBassMode" />
+        <span>Bass Mode</span>
+      </label>
+    </section>
+
     <section class="grid" id="stepGrid" aria-label="Step sequencer grid"></section>
 
     <div id="stepStatus" class="status">step: -</div>
@@ -203,29 +293,41 @@
       const audioContext = new AudioCtx();
       const lookaheadMs = 25;
       const scheduleAheadSec = 0.14;
-      const tracks = ['kick', 'snare', 'hat'];
+      const drumTracks = ['kick', 'snare', 'hat'];
+      const tracks = [...drumTracks, 'synth'];
       const steps = 16;
+
+      const scaleMap = {
+        'C major': [60, 62, 64, 65, 67, 69, 71, 72],
+        'C minor': [60, 62, 63, 65, 67, 68, 70, 72],
+        'D minor': [62, 64, 65, 67, 69, 70, 72, 74],
+        'A minor': [57, 59, 60, 62, 64, 65, 67, 69]
+      };
 
       const presets = {
         'Basic Groove': {
           kick: 'x---x---x---x---',
           snare: '----x-------x---',
-          hat: 'x-x-x-x-x-x-x-x-'
+          hat: 'x-x-x-x-x-x-x-x-',
+          synth: 'x-------x-------'
         },
         'Slow Chill': {
           kick: 'x-------x---x---',
           snare: '--------x-------',
-          hat: 'x---x---x---x---'
+          hat: 'x---x---x---x---',
+          synth: 'x---x-------x---'
         },
         'Fast Techno': {
           kick: 'x-x-xx-x-x-xx-x-',
           snare: '----x-------x-x-',
-          hat: 'xxxxxxxxxxxxxxxx'
+          hat: 'xxxxxxxxxxxxxxxx',
+          synth: 'x-xx--x-x-xx--x-'
         },
         'Sparse Beat': {
           kick: 'x-------x-------',
           snare: '--------x-------',
-          hat: '--x-----x-----x-'
+          hat: '--x-----x-----x-',
+          synth: '--x---------x---'
         }
       };
 
@@ -245,10 +347,27 @@
       const stepStatus = document.getElementById('stepStatus');
       const knobArea = document.getElementById('knobArea');
       const appCard = document.getElementById('appCard');
+      const synthScale = document.getElementById('synthScale');
+      const synthPatternMode = document.getElementById('synthPatternMode');
+      const synthWave = document.getElementById('synthWave');
+      const synthAttack = document.getElementById('synthAttack');
+      const synthDecay = document.getElementById('synthDecay');
+      const synthAttackValue = document.getElementById('synthAttackValue');
+      const synthDecayValue = document.getElementById('synthDecayValue');
+      const synthBassMode = document.getElementById('synthBassMode');
 
       const values = Object.fromEntries(controlsSpec.map((control) => [control.id, control.value]));
       const pattern = {};
       tracks.forEach((track) => (pattern[track] = Array(steps).fill(false)));
+
+      const synthState = {
+        scale: synthScale.value,
+        notePattern: synthPatternMode.value,
+        wave: synthWave.value,
+        attack: Number(synthAttack.value),
+        decay: Number(synthDecay.value),
+        bassMode: synthBassMode.checked
+      };
 
       let isPlaying = false;
       let schedulerId = null;
@@ -332,6 +451,29 @@
         });
       }
 
+      function bindSynthControls() {
+        synthScale.addEventListener('change', () => {
+          synthState.scale = synthScale.value;
+        });
+        synthPatternMode.addEventListener('change', () => {
+          synthState.notePattern = synthPatternMode.value;
+        });
+        synthWave.addEventListener('change', () => {
+          synthState.wave = synthWave.value;
+        });
+        synthAttack.addEventListener('input', () => {
+          synthState.attack = Number(synthAttack.value);
+          synthAttackValue.textContent = `${synthState.attack.toFixed(2)}s`;
+        }, { passive: true });
+        synthDecay.addEventListener('input', () => {
+          synthState.decay = Number(synthDecay.value);
+          synthDecayValue.textContent = `${synthState.decay.toFixed(2)}s`;
+        }, { passive: true });
+        synthBassMode.addEventListener('change', () => {
+          synthState.bassMode = synthBassMode.checked;
+        });
+      }
+
       function applyAudioParams() {
         masterGain.gain.setTargetAtTime(values.volume, audioContext.currentTime, 0.015);
         bassFilter.gain.setTargetAtTime(values.bass, audioContext.currentTime, 0.02);
@@ -344,7 +486,8 @@
       function loadPreset(name) {
         const preset = presets[name];
         tracks.forEach((track) => {
-          const str = preset[track].padEnd(steps, '-').slice(0, steps);
+          const source = preset[track] || '-'.repeat(steps);
+          const str = source.padEnd(steps, '-').slice(0, steps);
           pattern[track] = [...str].map((ch) => ch === 'x');
         });
         renderGrid();
@@ -370,7 +513,7 @@
 
           const name = document.createElement('span');
           name.className = 'name';
-          name.textContent = track;
+          name.textContent = track === 'synth' ? 'SYNTH' : track;
           row.appendChild(name);
 
           for (let i = 0; i < steps; i++) {
@@ -448,6 +591,52 @@
         noise.stop(time + 0.06);
       }
 
+      function midiToFrequency(midi) {
+        return 440 * Math.pow(2, (midi - 69) / 12);
+      }
+
+      function getSynthMidi(step) {
+        const notes = scaleMap[synthState.scale] || scaleMap['C minor'];
+        const index = step % notes.length;
+        const descendingIndex = notes.length - 1 - index;
+
+        if (synthState.notePattern === 'ascending') return notes[index];
+        if (synthState.notePattern === 'descending') return notes[descendingIndex];
+        if (synthState.notePattern === 'random') return notes[Math.floor(Math.random() * notes.length)];
+        return notes[0];
+      }
+
+      function playSynth(step, time) {
+        const osc = audioContext.createOscillator();
+        const amp = audioContext.createGain();
+        const tone = audioContext.createBiquadFilter();
+        const baseMidi = getSynthMidi(step);
+        const bassShift = synthState.bassMode ? (Math.random() < 0.5 ? 12 : 24) : 0;
+        const midi = baseMidi - bassShift;
+        const frequency = midiToFrequency(midi);
+        const attack = Math.max(0, synthState.attack);
+        const decay = Math.max(0.02, synthState.decay);
+        const peak = synthState.bassMode ? 0.45 : 0.3;
+        const releaseTime = time + attack + decay;
+
+        osc.type = synthState.wave;
+        osc.frequency.setValueAtTime(frequency, time);
+
+        tone.type = 'lowpass';
+        tone.Q.value = 0.6;
+        tone.frequency.setValueAtTime(synthState.bassMode ? 900 : 2400, time);
+
+        amp.gain.setValueAtTime(0.0001, time);
+        amp.gain.linearRampToValueAtTime(peak, time + attack + 0.001);
+        amp.gain.exponentialRampToValueAtTime(0.0001, releaseTime);
+
+        osc.connect(tone);
+        tone.connect(amp);
+        connectVoice(amp);
+        osc.start(time);
+        osc.stop(releaseTime + 0.02);
+      }
+
       function stepDurationSec() {
         return 60 / values.bpm / 4;
       }
@@ -459,7 +648,7 @@
       function highlightStep(step) {
         const prev = stepGrid.querySelectorAll('.step-btn.current');
         prev.forEach((el) => el.classList.remove('current'));
-        stepGrid.querySelectorAll(`.step-btn[data-step=\"${step}\"]`).forEach((el) => el.classList.add('current'));
+        stepGrid.querySelectorAll(`.step-btn[data-step="${step}"]`).forEach((el) => el.classList.add('current'));
         stepStatus.textContent = `step: ${step + 1} / 16`;
         appCard.classList.add('pulse');
         setTimeout(() => appCard.classList.remove('pulse'), 110);
@@ -469,6 +658,7 @@
         if (pattern.kick[step]) playKick(time);
         if (pattern.snare[step]) playSnare(time);
         if (pattern.hat[step]) playHat(time);
+        if (pattern.synth[step]) playSynth(step, time);
       }
 
       function scheduleStep() {
@@ -510,6 +700,7 @@
       stopBtn.addEventListener('click', stop);
 
       buildControls();
+      bindSynthControls();
       buildPresetMenu();
       loadPreset('Basic Groove');
       applyAudioParams();
