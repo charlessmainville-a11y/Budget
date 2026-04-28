@@ -20,6 +20,7 @@
     }
 
     * { box-sizing: border-box; }
+
     html, body {
       margin: 0;
       width: 100%;
@@ -36,9 +37,9 @@
     .app {
       height: 100%;
       display: grid;
-      grid-template-rows: auto 1fr auto;
+      grid-template-rows: auto minmax(0, 1fr);
       gap: 8px;
-      padding: 8px;
+      padding: 8px 8px 10px;
     }
 
     .panel {
@@ -46,6 +47,76 @@
       border: 1px solid var(--line);
       border-radius: 12px;
       box-shadow: 0 0 18px rgba(73, 111, 255, 0.15);
+    }
+
+    .tabs {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      padding: 8px;
+    }
+
+    button, select {
+      border: 1px solid #333c55;
+      background: #121a2b;
+      color: var(--text);
+      border-radius: 12px;
+      min-height: 46px;
+      padding: 10px 13px;
+      font-weight: 700;
+      font-size: 0.86rem;
+      letter-spacing: 0.03em;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+    }
+
+    .tabBtn {
+      min-height: 44px;
+      font-size: 0.78rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .tabBtn.active {
+      background: linear-gradient(180deg, #2b3e7f, #1f2d5b);
+      border-color: #5f7eff;
+      box-shadow: 0 0 12px rgba(95, 126, 255, 0.4);
+    }
+
+    .playBtn { background: linear-gradient(180deg, #2956b2, #213f74); }
+
+    .toggleBtn.active {
+      border-color: var(--green);
+      box-shadow: 0 0 12px rgba(79, 242, 189, 0.35);
+      color: #d7fff2;
+    }
+
+    .views {
+      position: relative;
+      min-height: 0;
+      overflow: hidden;
+    }
+
+    .view {
+      height: 100%;
+      min-height: 0;
+      transition: opacity 220ms ease, transform 240ms ease;
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .view.hidden {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      transform: translateY(8px);
+      pointer-events: none;
+    }
+
+    .sequencerView {
+      display: grid;
+      grid-template-rows: auto minmax(0, 1fr);
+      gap: 8px;
     }
 
     .top {
@@ -58,27 +129,6 @@
 
     .transport { display: flex; gap: 8px; }
 
-    button, select {
-      border: 1px solid #333c55;
-      background: #121a2b;
-      color: var(--text);
-      border-radius: 10px;
-      min-height: 40px;
-      padding: 8px 11px;
-      font-weight: 700;
-      font-size: 0.8rem;
-      letter-spacing: 0.03em;
-      -webkit-tap-highlight-color: transparent;
-      touch-action: manipulation;
-    }
-
-    .playBtn { background: linear-gradient(180deg, #2956b2, #213f74); }
-    .toggleBtn.active {
-      border-color: var(--green);
-      box-shadow: 0 0 12px rgba(79, 242, 189, 0.35);
-      color: #d7fff2;
-    }
-
     .range {
       display: grid;
       gap: 4px;
@@ -88,7 +138,7 @@
     .range label {
       display: flex;
       justify-content: space-between;
-      font-size: 0.66rem;
+      font-size: 0.68rem;
       color: var(--muted);
       text-transform: uppercase;
       letter-spacing: 0.1em;
@@ -104,16 +154,16 @@
       width: 100%;
       margin: 0;
       accent-color: var(--cyan);
-      min-height: 28px;
+      min-height: 34px;
       touch-action: pan-x;
     }
 
-    .middle {
-      min-height: 0;
+    .gridRegion {
+      min-height: 70svh;
       overflow: auto;
-      padding: 8px;
+      padding: 6px;
       display: grid;
-      gap: 8px;
+      gap: 6px;
       align-content: start;
       -webkit-overflow-scrolling: touch;
     }
@@ -122,7 +172,7 @@
       background: #0e1322;
       border: 1px solid #2e3550;
       border-radius: 10px;
-      padding: 8px;
+      padding: 6px;
       display: grid;
       gap: 6px;
     }
@@ -131,7 +181,7 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      font-size: 0.74rem;
+      font-size: 0.72rem;
       letter-spacing: 0.09em;
       text-transform: uppercase;
       color: #d3dfff;
@@ -139,13 +189,13 @@
 
     .gridRow {
       display: grid;
-      grid-template-columns: repeat(16, minmax(16px, 1fr));
-      gap: 4px;
+      grid-template-columns: repeat(16, minmax(18px, 1fr));
+      gap: 5px;
     }
 
     .step {
-      min-height: 27px;
-      border-radius: 6px;
+      min-height: 40px;
+      border-radius: 8px;
       border: 1px solid #313a57;
       background: #151b2b;
       padding: 0;
@@ -162,19 +212,37 @@
       box-shadow: 0 0 14px rgba(102, 243, 255, 0.35);
     }
 
+    .controlsView {
+      overflow: auto;
+      padding: 4px;
+      display: grid;
+      gap: 8px;
+      align-content: start;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .controlTrack {
+      background: #0e1322;
+      border: 1px solid #2e3550;
+      border-radius: 10px;
+      padding: 10px;
+      display: grid;
+      gap: 8px;
+    }
+
     .controls {
       display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 6px;
+      grid-template-columns: 1fr;
+      gap: 8px;
     }
 
     .master {
       background: #0f1422;
       border: 1px solid #323a55;
       border-radius: 10px;
-      padding: 8px;
+      padding: 10px;
       display: grid;
-      gap: 6px;
+      gap: 8px;
     }
 
     .masterTitle {
@@ -191,33 +259,36 @@
       gap: 6px;
     }
 
-    .bottom {
-      padding: 8px;
+    .keyboardView {
       display: grid;
+      grid-template-rows: auto 1fr;
       gap: 8px;
+      min-height: 0;
+      padding: 4px;
     }
 
     .kbdTop {
       display: grid;
       grid-template-columns: repeat(2, 1fr);
-      gap: 6px;
+      gap: 8px;
     }
 
     .keyboardWrap {
       position: relative;
-      height: 112px;
+      min-height: 300px;
       border: 1px solid #2f3752;
-      border-radius: 10px;
+      border-radius: 12px;
       background: #0d121d;
       overflow: hidden;
+      width: 100%;
     }
 
     .whiteKeys {
       height: 100%;
       display: grid;
       grid-template-columns: repeat(7, 1fr);
-      gap: 2px;
-      padding: 2px;
+      gap: 3px;
+      padding: 3px;
     }
 
     .wkey, .bkey {
@@ -226,15 +297,16 @@
       display: flex;
       align-items: flex-end;
       justify-content: center;
-      font-size: 0.62rem;
+      font-size: 0.72rem;
       font-weight: 700;
       touch-action: none;
     }
 
     .wkey {
-      border-radius: 0 0 7px 7px;
+      border-radius: 0 0 10px 10px;
       background: linear-gradient(180deg, #f4f7ff, #bcc7de);
       color: #111726;
+      min-height: 240px;
     }
 
     .blackLayer {
@@ -245,10 +317,10 @@
 
     .bkey {
       position: absolute;
-      width: 10.4%;
+      width: 10.6%;
       height: 62%;
       top: 0;
-      border-radius: 0 0 8px 8px;
+      border-radius: 0 0 10px 10px;
       background: linear-gradient(180deg, #32384a, #1c2232);
       border-color: #667094;
       color: #e4ecff;
@@ -259,32 +331,52 @@
       box-shadow: inset 0 0 0 2px #aefbff, 0 0 14px rgba(86, 207, 255, 0.5);
       transform: translateY(1px);
     }
+
+    @media (min-width: 740px) {
+      .controls {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
   </style>
 </head>
 <body>
   <main class="app">
-    <section class="panel top">
-      <div class="transport">
-        <button id="play" class="playBtn" type="button">Play</button>
-        <button id="stop" type="button">Stop</button>
-      </div>
-      <div class="range">
-        <label for="bpm">BPM <b id="out-bpm">140</b></label>
-        <input id="bpm" type="range" min="70" max="180" step="1" value="140">
-      </div>
+    <section class="panel tabs" id="viewTabs">
+      <button class="tabBtn active" data-view="sequencer" type="button">Sequencer</button>
+      <button class="tabBtn" data-view="controls" type="button">Controls</button>
+      <button class="tabBtn" data-view="keyboard" type="button">Keyboard</button>
     </section>
 
-    <section class="panel middle" id="tracks"></section>
+    <section class="views">
+      <section class="view sequencerView" id="sequencerView">
+        <section class="panel top">
+          <div class="transport">
+            <button id="play" class="playBtn" type="button">Play</button>
+            <button id="stop" type="button">Stop</button>
+          </div>
+          <div class="range">
+            <label for="bpm">BPM <b id="out-bpm">140</b></label>
+            <input id="bpm" type="range" min="70" max="180" step="1" value="140">
+          </div>
+        </section>
 
-    <section class="panel bottom">
-      <div class="kbdTop">
-        <button id="playBass" class="toggleBtn active" type="button">Play Bass</button>
-        <button id="playSynth" class="toggleBtn active" type="button">Play Synth</button>
-      </div>
-      <div class="keyboardWrap" id="keyboard"></div>
-      <div class="master" id="masterPanel">
-        <p class="masterTitle">Master Controls</p>
-      </div>
+        <section class="panel gridRegion" id="tracks"></section>
+      </section>
+
+      <section class="view controlsView hidden" id="controlsView">
+        <section id="controlsTracks"></section>
+        <section class="master" id="masterPanel">
+          <p class="masterTitle">Master Controls</p>
+        </section>
+      </section>
+
+      <section class="view keyboardView hidden" id="keyboardView">
+        <div class="kbdTop">
+          <button id="playBass" class="toggleBtn active" type="button">Play Bass</button>
+          <button id="playSynth" class="toggleBtn active" type="button">Play Synth</button>
+        </div>
+        <div class="keyboardWrap" id="keyboard"></div>
+      </section>
     </section>
   </main>
 
@@ -313,17 +405,23 @@
         pointerMap: new Map(),
         liveBass: true,
         liveSynth: true,
+        activeView: 'sequencer',
         master: { volume: 0.82, filter: 18000, reverb: 0.2, delay: 0.14 }
       };
 
       const ui = {
         tracks: document.getElementById('tracks'),
+        controlsTracks: document.getElementById('controlsTracks'),
         keyboard: document.getElementById('keyboard'),
         bpm: document.getElementById('bpm'),
         outBpm: document.getElementById('out-bpm'),
         playBass: document.getElementById('playBass'),
         playSynth: document.getElementById('playSynth'),
-        masterPanel: document.getElementById('masterPanel')
+        masterPanel: document.getElementById('masterPanel'),
+        tabs: [...document.querySelectorAll('.tabBtn')],
+        sequencerView: document.getElementById('sequencerView'),
+        controlsView: document.getElementById('controlsView'),
+        keyboardView: document.getElementById('keyboardView')
       };
 
       const masterIn = audio.createGain();
@@ -621,16 +719,42 @@
         return wrap;
       }
 
+      function buildTrackControls(track) {
+        const controls = document.createElement('div');
+        controls.className = 'controls';
+        controls.appendChild(mkRange('Vol', 0, 1, 0.01, track.controls.volume, (v) => { track.controls.volume = v; }));
+        controls.appendChild(mkRange('Filter', 120, 12000, 1, track.controls.filter, (v) => { track.controls.filter = v; }, (v) => Math.round(v).toString()));
+        controls.appendChild(mkRange('Drive', 0, 0.9, 0.01, track.controls.drive, (v) => { track.controls.drive = v; }));
+
+        if (track.id === 'kick') controls.appendChild(mkRange('Punch', 0.1, 1, 0.01, track.controls.punch, (v) => { track.controls.punch = v; }));
+        if (track.id === 'snare') controls.appendChild(mkRange('Noise', 0, 1, 0.01, track.controls.noise, (v) => { track.controls.noise = v; }));
+        if (track.id === 'hat') controls.appendChild(mkRange('Bright', 3500, 12000, 1, track.controls.bright, (v) => { track.controls.bright = v; }, (v) => Math.round(v).toString()));
+        if (track.id === 'bass') {
+          controls.appendChild(mkRange('Sub', 0, 1, 0.01, track.controls.sub, (v) => { track.controls.sub = v; }));
+          controls.appendChild(mkRange('Wobble', 0, 1, 0.01, track.controls.wobble, (v) => { track.controls.wobble = v; }));
+          controls.appendChild(mkRange('Glide', 0, 0.2, 0.005, track.controls.glide, (v) => { track.controls.glide = v; }, (v) => v.toFixed(3)));
+        }
+        if (track.id === 'synth') {
+          controls.appendChild(mkSelect('Wave', ['sine', 'sawtooth', 'square'], track.controls.wave, (v) => { track.controls.wave = v; }));
+          controls.appendChild(mkRange('Detune', 0, 25, 1, track.controls.detune, (v) => { track.controls.detune = v; }, (v) => `${Math.round(v)}c`));
+          controls.appendChild(mkRange('Attack', 0.001, 0.2, 0.001, track.controls.attack, (v) => { track.controls.attack = v; }, (v) => v.toFixed(3)));
+        }
+
+        return controls;
+      }
+
       function renderTracks() {
         ui.tracks.innerHTML = '';
+        ui.controlsTracks.innerHTML = '';
+
         tracks.forEach((track) => {
-          const panel = document.createElement('article');
-          panel.className = 'track';
+          const gridPanel = document.createElement('article');
+          gridPanel.className = 'track';
 
           const title = document.createElement('div');
           title.className = 'trackTitle';
           title.innerHTML = `<span>${track.name}</span><span>16 Steps</span>`;
-          panel.appendChild(title);
+          gridPanel.appendChild(title);
 
           const row = document.createElement('div');
           row.className = 'gridRow';
@@ -646,35 +770,23 @@
             });
             row.appendChild(s);
           }
-          panel.appendChild(row);
+          gridPanel.appendChild(row);
+          ui.tracks.appendChild(gridPanel);
 
-          const controls = document.createElement('div');
-          controls.className = 'controls';
-          controls.appendChild(mkRange('Vol', 0, 1, 0.01, track.controls.volume, (v) => { track.controls.volume = v; }));
-          controls.appendChild(mkRange('Filter', 120, 12000, 1, track.controls.filter, (v) => { track.controls.filter = v; }, (v) => Math.round(v).toString()));
-          controls.appendChild(mkRange('Drive', 0, 0.9, 0.01, track.controls.drive, (v) => { track.controls.drive = v; }));
-
-          if (track.id === 'kick') controls.appendChild(mkRange('Punch', 0.1, 1, 0.01, track.controls.punch, (v) => { track.controls.punch = v; }));
-          if (track.id === 'snare') controls.appendChild(mkRange('Noise', 0, 1, 0.01, track.controls.noise, (v) => { track.controls.noise = v; }));
-          if (track.id === 'hat') controls.appendChild(mkRange('Bright', 3500, 12000, 1, track.controls.bright, (v) => { track.controls.bright = v; }, (v) => Math.round(v).toString()));
-          if (track.id === 'bass') {
-            controls.appendChild(mkRange('Sub', 0, 1, 0.01, track.controls.sub, (v) => { track.controls.sub = v; }));
-            controls.appendChild(mkRange('Wobble', 0, 1, 0.01, track.controls.wobble, (v) => { track.controls.wobble = v; }));
-            controls.appendChild(mkRange('Glide', 0, 0.2, 0.005, track.controls.glide, (v) => { track.controls.glide = v; }, (v) => v.toFixed(3)));
-          }
-          if (track.id === 'synth') {
-            controls.appendChild(mkSelect('Wave', ['sine', 'sawtooth', 'square'], track.controls.wave, (v) => { track.controls.wave = v; }));
-            controls.appendChild(mkRange('Detune', 0, 25, 1, track.controls.detune, (v) => { track.controls.detune = v; }, (v) => `${Math.round(v)}c`));
-            controls.appendChild(mkRange('Attack', 0.001, 0.2, 0.001, track.controls.attack, (v) => { track.controls.attack = v; }, (v) => v.toFixed(3)));
-          }
-
-          panel.appendChild(controls);
-          ui.tracks.appendChild(panel);
+          const controlPanel = document.createElement('article');
+          controlPanel.className = 'controlTrack';
+          const controlTitle = document.createElement('div');
+          controlTitle.className = 'trackTitle';
+          controlTitle.innerHTML = `<span>${track.name}</span><span>Instrument</span>`;
+          controlPanel.appendChild(controlTitle);
+          controlPanel.appendChild(buildTrackControls(track));
+          ui.controlsTracks.appendChild(controlPanel);
         });
       }
 
       function renderMaster() {
         const m = ui.masterPanel;
+        m.innerHTML = '<p class="masterTitle">Master Controls</p>';
         m.appendChild(mkRange('Master Vol', 0, 1, 0.01, state.master.volume, (v) => { state.master.volume = v; }));
         m.appendChild(mkRange('Master Filter', 150, 18000, 1, state.master.filter, (v) => { state.master.filter = v; }, (v) => Math.round(v).toString()));
         m.appendChild(mkRange('Reverb', 0, 0.65, 0.01, state.master.reverb, (v) => { state.master.reverb = v; }));
@@ -780,6 +892,23 @@
         ui.keyboard.appendChild(blackLayer);
       }
 
+      function setView(view) {
+        state.activeView = view;
+        const map = {
+          sequencer: ui.sequencerView,
+          controls: ui.controlsView,
+          keyboard: ui.keyboardView
+        };
+
+        Object.entries(map).forEach(([name, el]) => {
+          el.classList.toggle('hidden', name !== view);
+        });
+
+        ui.tabs.forEach((tab) => {
+          tab.classList.toggle('active', tab.dataset.view === view);
+        });
+      }
+
       function bindUI() {
         document.getElementById('play').addEventListener('click', start);
         document.getElementById('stop').addEventListener('click', stop);
@@ -798,14 +927,16 @@
           ui.playSynth.classList.toggle('active', state.liveSynth);
         });
 
+        ui.tabs.forEach((tab) => {
+          tab.addEventListener('click', () => setView(tab.dataset.view));
+        });
+
         document.body.addEventListener('touchstart', () => {
           if (audio.state === 'suspended') audio.resume();
         }, { once: true, passive: true });
       }
 
       function renderAll() {
-        ui.tracks.innerHTML = '';
-        ui.masterPanel.innerHTML = '<p class="masterTitle">Master Controls</p>';
         renderTracks();
         renderMaster();
         applyAllParams();
@@ -814,6 +945,7 @@
       renderAll();
       renderKeyboard();
       bindUI();
+      setView('sequencer');
       applyAllParams();
     })();
   </script>
