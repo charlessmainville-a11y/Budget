@@ -99,27 +99,25 @@ function renderKeyboard(){ui.keyboard.innerHTML='';const w=document.createElemen
 function setView(view) {
   activeView = view;
 
-  document.getElementById("sequencerView").style.display = "none";
-  document.getElementById("controlsView").style.display = "none";
-  document.getElementById("keyboardView").style.display = "none";
+  // remove active from all views
+  ui.sequencerView.classList.remove('active');
+  ui.controlsView.classList.remove('active');
+  ui.keyboardView.classList.remove('active');
 
-  document.getElementById(view + "View").style.display = "block";
+  // activate selected view
+  document.getElementById(view + "View").classList.add('active');
 
-  ui.sequencerView.classList.toggle('active', view === 'sequencer');
-  ui.controlsView.classList.toggle('active', view === 'controls');
-  ui.keyboardView.classList.toggle('active', view === 'keyboard');
-  ui.tabs.forEach(t => t.classList.toggle('active', t.dataset.view === view));
+  // update tab button styling
+  ui.tabs.forEach(tab => {
+    tab.classList.toggle('active', tab.dataset.view === view);
+  });
 
   console.log("ACTIVE VIEW:", view);
 }
 document.getElementById('play').onclick=start;document.getElementById('stop').onclick=stop;ui.bpm.oninput=()=>{state.bpm=+ui.bpm.value;ui.outBpm.textContent=state.bpm};ui.playBass.onclick=()=>{state.liveBass=!state.liveBass;ui.playBass.classList.toggle('active',state.liveBass)};ui.playSynth.onclick=()=>{state.liveSynth=!state.liveSynth;ui.playSynth.classList.toggle('active',state.liveSynth)};
-document.getElementById("sequencerBtn").onclick = () => setView("sequencer");
-document.getElementById("controlsBtn").onclick = () => setView("controls");
-document.getElementById("keyboardBtn").onclick = () => setView("keyboard");
-
-document.getElementById("sequencerBtn").addEventListener("touchstart", () => setView("sequencer"));
-document.getElementById("controlsBtn").addEventListener("touchstart", () => setView("controls"));
-document.getElementById("keyboardBtn").addEventListener("touchstart", () => setView("keyboard"));
-renderTracks();renderControlPanel();renderKeyboard();setView('sequencer');applyAllParams();})();
+sequencerBtn.onclick = () => setView("sequencer");
+controlsBtn.onclick = () => setView("controls");
+keyboardBtn.onclick = () => setView("keyboard");
+renderTracks();renderControlPanel();renderKeyboard();setView("sequencer");applyAllParams();})();
 </script>
 </body></html>
