@@ -16,8 +16,8 @@
     .range input{width:100%}
     .tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.tabBtn{text-transform:uppercase;letter-spacing:.08em}.tabBtn.active{border-color:#6e8cff;box-shadow:0 0 14px rgba(90,125,255,.35)}
     .views{min-height:0;position:relative;overflow:hidden}
-    .view{position:absolute;inset:0;height:100%;opacity:0;pointer-events:none;z-index:1;transition:opacity .12s ease}
-    .view.active{opacity:1;pointer-events:auto;z-index:3}
+    .view{position:absolute;inset:0;height:100%;display:none;opacity:0;pointer-events:none;z-index:1;transition:opacity .12s ease}
+    .view.active{display:block;opacity:1;pointer-events:auto;z-index:3}
     .sequencerView{padding:6px;overflow:auto}.gridRegion{min-height:70svh;display:grid;gap:8px}
     .track{background:#0d1220;border:1px solid #2a3350;border-radius:12px;padding:8px}
     .trackHeader{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center;margin-bottom:6px}
@@ -92,7 +92,7 @@ const white=[{n:'C',m:60},{n:'D',m:62},{n:'E',m:64},{n:'F',m:65},{n:'G',m:67},{n
 function playLive(m){if(state.activeView!=='keyboard')return;const t=audio.currentTime;if(state.liveBass)trigBass(t,m,.33);if(state.liveSynth)trigSynth(t,m+12,.33)}
 function bindKey(el,m){el.onpointerdown=e=>{if(state.activeView!=='keyboard')return;e.preventDefault();el.setPointerCapture(e.pointerId);el.classList.add('keyOn');if(audio.state==='suspended')audio.resume();playLive(m)};el.onpointerup=()=>el.classList.remove('keyOn');el.onpointercancel=()=>el.classList.remove('keyOn')}
 function renderKeyboard(){ui.keyboard.innerHTML='';const w=document.createElement('div');w.className='whiteKeys';white.forEach(k=>{const b=document.createElement('button');b.className='wkey';b.textContent=k.n;bindKey(b,k.m);w.appendChild(b)});const bl=document.createElement('div');bl.className='blackLayer';black.forEach(k=>{const b=document.createElement('button');b.className='bkey';b.style.left=k.l+'%';b.textContent=k.n;bindKey(b,k.m);bl.appendChild(b)});ui.keyboard.append(w,bl)}
-function setView(v){state.activeView=v;const map={sequencer:ui.sequencerView,controls:ui.controlsView,keyboard:ui.keyboardView};Object.entries(map).forEach(([key,el])=>{el.classList.toggle('active',key===v);el.style.pointerEvents=key===v?'auto':'none';el.style.zIndex=key===v?'3':'1'});ui.tabs.forEach(t=>t.classList.toggle('active',t.dataset.view===v))}
+function setView(v){const map={sequencer:ui.sequencerView,controls:ui.controlsView,keyboard:ui.keyboardView};const next=map[v]?v:'sequencer';state.activeView=next;Object.entries(map).forEach(([key,el])=>{const active=key===next;el.classList.toggle('active',active);el.style.display=active?'block':'none';el.style.opacity=active?'1':'0';el.style.pointerEvents=active?'auto':'none';el.style.zIndex=active?'3':'1'});ui.tabs.forEach(t=>t.classList.toggle('active',t.dataset.view===next));if(!document.querySelector('.view.active')){setView('sequencer')}}
 document.getElementById('play').onclick=start;document.getElementById('stop').onclick=stop;ui.bpm.oninput=()=>{state.bpm=+ui.bpm.value;ui.outBpm.textContent=state.bpm};ui.playBass.onclick=()=>{state.liveBass=!state.liveBass;ui.playBass.classList.toggle('active',state.liveBass)};ui.playSynth.onclick=()=>{state.liveSynth=!state.liveSynth;ui.playSynth.classList.toggle('active',state.liveSynth)};ui.tabs.forEach(t=>t.onclick=()=>setView(t.dataset.view));
 renderTracks();renderControlPanel();renderKeyboard();setView('sequencer');applyAllParams();})();
 </script>
