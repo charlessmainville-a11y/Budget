@@ -15,9 +15,9 @@
     .range label{font-size:.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;display:flex;justify-content:space-between}
     .range input{width:100%}
     .tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.tabBtn{text-transform:uppercase;letter-spacing:.08em}.tabBtn.active{border-color:#6e8cff;box-shadow:0 0 14px rgba(90,125,255,.35)}
-    .views{min-height:0;position:relative;overflow:hidden}
-    .view{position:absolute;inset:0;height:100%;display:none;opacity:0;pointer-events:none;z-index:1;transition:opacity .12s ease}
-    .view.active{display:block;opacity:1;pointer-events:auto;z-index:3}
+    .views{min-height:0;display:block;width:100%;height:100%}
+    .view{display:none;width:100%;height:100%}
+    .view.active{display:block}
     .sequencerView{padding:6px;overflow:auto}.gridRegion{min-height:70svh;display:grid;gap:8px}
     .track{background:#0d1220;border:1px solid #2a3350;border-radius:12px;padding:8px}
     .trackHeader{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center;margin-bottom:6px}
