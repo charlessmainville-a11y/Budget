@@ -42,7 +42,7 @@
 </head>
 <body><main class="app">
   <section class="panel top"><div class="transport"><button id="play" class="playBtn">Play</button><button id="stop">Stop</button></div><div class="range"><label for="bpm">BPM <b id="out-bpm">140</b></label><input id="bpm" type="range" min="70" max="180" value="140"></div></section>
-  <section class="panel tabs"><button class="tabBtn active" data-view="sequencer">Sequencer</button><button class="tabBtn" data-view="controls">Controls</button><button class="tabBtn" data-view="keyboard">Keyboard</button></section>
+  <section class="panel tabs"><button id="sequencerBtn" class="tabBtn active" data-view="sequencer">Sequencer</button><button id="controlsBtn" class="tabBtn" data-view="controls">Controls</button><button id="keyboardBtn" class="tabBtn" data-view="keyboard">Keyboard</button></section>
   <section class="views">
     <section class="view sequencerView active" id="sequencerView"><section class="gridRegion" id="tracks"></section></section>
     <section class="view controlsView" id="controlsView"><section id="controlsTracks"></section></section>
@@ -57,9 +57,9 @@ const tracks=[{id:'kick',name:'Kick',pattern:'basic',steps:[...patternBank.basic
 const state={bpm:140,playing:false,nextTime:0,step:0,timer:null,liveBass:true,liveSynth:true,selectedTrack:'bass',master:{volume:.82,filter:18000,reverb:.2,delay:.14}};
 let activeView="sequencer";
 const ui={tracks:document.getElementById('tracks'),controlsTracks:document.getElementById('controlsTracks'),keyboard:document.getElementById('keyboard'),bpm:document.getElementById('bpm'),outBpm:document.getElementById('out-bpm'),playBass:document.getElementById('playBass'),playSynth:document.getElementById('playSynth'),tabs:[...document.querySelectorAll('.tabBtn')],sequencerView:document.getElementById('sequencerView'),controlsView:document.getElementById('controlsView'),keyboardView:document.getElementById('keyboardView')};
-const sequencerBtn=ui.tabs.find(tab=>tab.dataset.view==='sequencer');
-const controlsBtn=ui.tabs.find(tab=>tab.dataset.view==='controls');
-const keyboardBtn=ui.tabs.find(tab=>tab.dataset.view==='keyboard');
+const sequencerBtn=document.getElementById("sequencerBtn");
+const controlsBtn=document.getElementById("controlsBtn");
+const keyboardBtn=document.getElementById("keyboardBtn");
 const masterIn=audio.createGain(),masterFilter=audio.createBiquadFilter(),dry=audio.createGain(),wet=audio.createGain(),convolver=audio.createConvolver(),delay=audio.createDelay(.6),delayFB=audio.createGain(),delayMix=audio.createGain(),masterOut=audio.createGain();masterFilter.type='lowpass';masterIn.connect(masterFilter);masterFilter.connect(dry);masterFilter.connect(convolver);masterFilter.connect(delay);convolver.connect(wet);delay.connect(delayFB);delayFB.connect(delay);delay.connect(delayMix);dry.connect(masterOut);wet.connect(masterOut);delayMix.connect(masterOut);masterOut.connect(audio.destination);
 function impulse(s,d){const l=Math.floor(audio.sampleRate*s),b=audio.createBuffer(2,l,audio.sampleRate);for(let c=0;c<2;c++){const data=b.getChannelData(c);for(let i=0;i<l;i++)data[i]=(Math.random()*2-1)*Math.pow(1-i/l,d)}return b} convolver.buffer=impulse(1.1,5.4);
 function makeNoise(s=.8){const l=Math.floor(audio.sampleRate*s),b=audio.createBuffer(1,l,audio.sampleRate),d=b.getChannelData(0);for(let i=0;i<l;i++)d[i]=Math.random()*2-1;return b}const noiseBuffer=makeNoise();
@@ -96,30 +96,30 @@ const white=[{n:'C',m:60},{n:'D',m:62},{n:'E',m:64},{n:'F',m:65},{n:'G',m:67},{n
 function playLive(m){if(activeView!=='keyboard')return;const t=audio.currentTime;if(state.liveBass)trigBass(t,m,.33);if(state.liveSynth)trigSynth(t,m+12,.33)}
 function bindKey(el,m){el.onpointerdown=e=>{if(activeView!=='keyboard')return;e.preventDefault();el.setPointerCapture(e.pointerId);el.classList.add('keyOn');if(audio.state==='suspended')audio.resume();playLive(m)};el.onpointerup=()=>el.classList.remove('keyOn');el.onpointercancel=()=>el.classList.remove('keyOn')}
 function renderKeyboard(){ui.keyboard.innerHTML='';const w=document.createElement('div');w.className='whiteKeys';white.forEach(k=>{const b=document.createElement('button');b.className='wkey';b.textContent=k.n;bindKey(b,k.m);w.appendChild(b)});const bl=document.createElement('div');bl.className='blackLayer';black.forEach(k=>{const b=document.createElement('button');b.className='bkey';b.style.left=k.l+'%';b.textContent=k.n;bindKey(b,k.m);bl.appendChild(b)});ui.keyboard.append(w,bl)}
-function setView(view){
-  console.log(view);
-  activeView=view;
+function setView(view) {
+  activeView = view;
 
-  ui.sequencerView.style.display='none';
-  ui.controlsView.style.display='none';
-  ui.keyboardView.style.display='none';
+  document.getElementById("sequencerView").style.display = "none";
+  document.getElementById("controlsView").style.display = "none";
+  document.getElementById("keyboardView").style.display = "none";
 
-  if(view==='sequencer')ui.sequencerView.style.display='block';
-  if(view==='controls')ui.controlsView.style.display='block';
-  if(view==='keyboard')ui.keyboardView.style.display='block';
+  document.getElementById(view + "View").style.display = "block";
 
-  ui.sequencerView.classList.toggle('active',view==='sequencer');
-  ui.controlsView.classList.toggle('active',view==='controls');
-  ui.keyboardView.classList.toggle('active',view==='keyboard');
-  ui.tabs.forEach(t=>t.classList.toggle('active',t.dataset.view===view));
+  ui.sequencerView.classList.toggle('active', view === 'sequencer');
+  ui.controlsView.classList.toggle('active', view === 'controls');
+  ui.keyboardView.classList.toggle('active', view === 'keyboard');
+  ui.tabs.forEach(t => t.classList.toggle('active', t.dataset.view === view));
+
+  console.log("ACTIVE VIEW:", view);
 }
-document.getElementById('play').onclick=start;document.getElementById('stop').onclick=stop;ui.bpm.oninput=()=>{state.bpm=+ui.bpm.value;ui.outBpm.textContent=state.bpm};ui.playBass.onclick=()=>{state.liveBass=!state.liveBass;ui.playBass.classList.toggle('active',state.liveBass)};ui.playSynth.onclick=()=>{state.liveSynth=!state.liveSynth;ui.playSynth.classList.toggle('active',state.liveSynth)};ui.tabs.forEach(t=>t.onclick=()=>setView(t.dataset.view));
-sequencerBtn.onclick=()=>setView('sequencer');
-controlsBtn.onclick=()=>setView('controls');
-keyboardBtn.onclick=()=>setView('keyboard');
-sequencerBtn.addEventListener('touchstart',()=>setView('sequencer'));
-controlsBtn.addEventListener('touchstart',()=>setView('controls'));
-keyboardBtn.addEventListener('touchstart',()=>setView('keyboard'));
+document.getElementById('play').onclick=start;document.getElementById('stop').onclick=stop;ui.bpm.oninput=()=>{state.bpm=+ui.bpm.value;ui.outBpm.textContent=state.bpm};ui.playBass.onclick=()=>{state.liveBass=!state.liveBass;ui.playBass.classList.toggle('active',state.liveBass)};ui.playSynth.onclick=()=>{state.liveSynth=!state.liveSynth;ui.playSynth.classList.toggle('active',state.liveSynth)};
+document.getElementById("sequencerBtn").onclick = () => setView("sequencer");
+document.getElementById("controlsBtn").onclick = () => setView("controls");
+document.getElementById("keyboardBtn").onclick = () => setView("keyboard");
+
+document.getElementById("sequencerBtn").addEventListener("touchstart", () => setView("sequencer"));
+document.getElementById("controlsBtn").addEventListener("touchstart", () => setView("controls"));
+document.getElementById("keyboardBtn").addEventListener("touchstart", () => setView("keyboard"));
 renderTracks();renderControlPanel();renderKeyboard();setView('sequencer');applyAllParams();})();
 </script>
 </body></html>
